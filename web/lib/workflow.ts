@@ -17,6 +17,7 @@ export interface Procedure {
   nom: string;
   source?: Source;
   source_nom?: string | null; // document ou page où les valeurs sont lues, tel qu'affiché à l'écran
+  source_url?: string | null;
   objectif: string;
   destinations: Destination[];
   etapes: { site: string; texte: string }[];
@@ -53,11 +54,14 @@ Rends UNIQUEMENT ce JSON :
  "objectif": "une phrase",
  "source": "lecture si les valeurs étaient lues à l'écran dans un document ou une page (Google Sheet, tableau, CRM), formulaire si elles changent d'une fois à l'autre sans être lues à l'écran, aucune si la tâche se refait à l'identique",
  "source_nom": "titre exact du document ou de la page où les valeurs sont lues, tel qu'affiché à l'écran, ou null",
+ "source_url": "adresse vue pour cette source, ou null",
  "destinations": [{"site": "nom du site où le travail est fait", "url": "adresse de la page de départ (le formulaire), ou null"}],
  "etapes": [{"site": "...", "texte": "action à faire, avec les libellés exacts vus à l'écran"}],
  "champs": [{"champ": "libellé du champ sur le site", "colonne": "nom de la donnée : la colonne du Sheet, ou un nom court (Prix, Ville) s'il n'y a pas de Sheet"}],
  "demande": "la demande qu'on enverrait à l'agent pour une nouvelle ligne, à l'impératif"}
-Règles : les destinations sont les sites où l'on saisit (pas la source : un Google Sheet n'est jamais une destination). N'invente ni site ni adresse : seulement ce qui a été vu.
+Règles : les destinations sont les sites où l'on écrit (actions type, select, check, submit) ; la source est là où l'on lit (action read). Un Google Sheet peut être l'un ou l'autre :
+s'il reçoit des valeurs (cellules remplies), c'est une destination ; si on y lit des valeurs pour les recopier ailleurs, c'est la source.
+Si la personne complète un enregistrement existant (une ligne, une fiche client) au lieu d'en créer un, dis dans les étapes par quelle valeur elle le retrouve. N'invente ni site ni adresse : seulement ce qui a été vu.
 Une étape par site suffit si les actions se ressemblent. Avec un Sheet, relie CHAQUE colonne (sauf l'identifiant de la première)
 au champ le plus probable : l'observation ne montre souvent qu'une partie des saisies. Sans données variables (source aucune), champs est vide.`;
 
@@ -68,6 +72,7 @@ const REGLES_COMMUNES = [
   'Les libellés changent d’un site à l’autre : associe-les par leur sens (titre/intitulé, prix/montant, surface/superficie, ville/commune).',
   'Dans un menu déroulant, choisis l’option qui correspond à la valeur. Coche une case de certification si elle est obligatoire.',
   'Ne paie rien, ne supprime rien, n’écris à personne.',
+  'Si la tâche complète un enregistrement existant (une ligne de tableau, une fiche client), retrouve-le par la valeur qui l’identifie (e-mail, nom, numéro) et modifie-le : n’en crée jamais un second. Si tu ne le trouves pas, ne crée rien et réponds statut = "signale".',
   'Si un site demande de se connecter, utilise les identifiants enregistrés pour ce site : ne les invente jamais et ne les demande pas.',
   'Ne réponds qu’une fois chaque site terminé, avec dans publications l’adresse de la page qui montre le résultat (la page publiée), ou une liste vide si la tâche ne crée aucune page.',
 ];
@@ -166,22 +171,42 @@ export async function preparer(id: string): Promise<Workflow> {
     ...(autres ?? []).flatMap((a) => [a.sheet_url, ...((a.destinations ?? []) as Destination[]).map((d) => d.url)]),
   ].filter((u): u is string => !!u);
   const etapeSheet = etapes?.find((e) => e.url && estSheet(e.url));
-  const vuSheet = w.source !== 'formulaire' && w.source !== 'aucune' ? (w.sheet_url ?? etapeSheet?.url ?? null) : null;
-  // Lue par l'agent, une adresse fausse n'est qu'un indice : il retrouve le document par son nom. On garde la meilleure qu'on ait.
-  const sheetUrl = (await reparer(vuSheet, candidats)) ?? (w.source === 'sheet' ? null : vuSheet);
-  const colonnes = sheetUrl ? (await lireSheet(sheetUrl).catch(() => null))?.colonnes : null;
+  // Le premier Sheet vu n'est qu'un candidat : Qwen dit s'il est la source (on y lit) ou une destination (on y écrit).
+  const repares = new Map<string, Promise<string | null>>();
+  const reparerUneFois = (u: string | null) => (u ? (repares.get(u) ?? repares.set(u, reparer(u, candidats)).get(u)!) : Promise.resolve(null));
+  const sheetVu = await reparerUneFois(w.sheet_url ?? etapeSheet?.url ?? null);
+  const colonnes = sheetVu ? (await lireSheet(sheetVu).catch(() => null))?.colonnes : null;
 
   let procedure = w.procedure;
   if (!procedure) {
     const texte = (etapes ?? []).map((e) => `- ${e.site} · ${e.url ?? '?'} · ${e.ecran} · ${e.action} · ${e.champ ?? ''} · ${e.valeur ?? ''}`).join('\n');
-    const source = colonnes ? `Source des données : un Google Sheet dont les colonnes sont : ${colonnes.join(', ')}.` : '';
-    procedure = await raisonner<Procedure>(SYNTHESE.replace('{etapes}', texte).replace('{source}', source));
+    const vu = colonnes ? `Un Google Sheet a été vu, avec les colonnes : ${colonnes.join(', ')}. Il peut être la source ou une destination.` : '';
+    procedure = await raisonner<Procedure>(SYNTHESE.replace('{etapes}', texte).replace('{source}', vu));
   }
 
-  const destinations = await Promise.all((w.destinations ?? procedure.destinations).map(async (d) => ({ ...d, url: await reparer(d.url, candidats) })));
-  // Un document lu à l'écran fait foi, même si Qwen ne l'a pas noté : l'agent ira le lire lui-même. Sinon son avis, sinon un formulaire.
-  const source: Source = w.source ?? (vuSheet ? 'lecture' : procedure.source && procedure.source !== 'sheet' ? procedure.source : 'formulaire');
-  const sourceNom = w.source_nom ?? procedure.source_nom ?? etapeSheet?.ecran ?? null;
+  // Garde-fou : les actions observées disent où l'on écrit. Si Qwen a inversé source et destination, on suit les actions.
+  const ECRITURES = ['type', 'select', 'check', 'submit'];
+  const ecrits = [...new Set((etapes ?? []).filter((e) => e.site && ECRITURES.includes(e.action ?? '')).map((e) => e.site!))];
+  if (!w.destinations && ecrits.length && !procedure.destinations.some((d) => ecrits.includes(d.site))) {
+    const premiere = (site: string, actions: string[]) => etapes!.find((e) => e.site === site && actions.includes(e.action ?? ''));
+    const lu = procedure.destinations.map((d) => d.site).find((site) => !ecrits.includes(site));
+    procedure = {
+      ...procedure,
+      source: 'lecture',
+      source_nom: lu ? premiere(lu, ['read'])?.ecran ?? lu : procedure.source_nom,
+      source_url: lu ? premiere(lu, ['read'])?.url ?? null : procedure.source_url,
+      destinations: ecrits.map((site) => ({ site, url: premiere(site, ECRITURES)?.url ?? null })),
+    };
+  }
+  const destinations = await Promise.all((w.destinations ?? procedure.destinations).map(async (d) => ({ ...d, url: await reparerUneFois(d.url) })));
+  const sheetEnDestination = destinations.some((d) => d.url && estSheet(d.url));
+  // Un Sheet vu et qui ne reçoit rien est la source, même si Qwen ne l'a pas noté. Sinon son avis, sinon un formulaire.
+  const avis = procedure.source === 'sheet' ? 'lecture' : procedure.source;
+  const source: Source = w.source ?? (avis === 'aucune' ? 'aucune' : avis === 'lecture' || (etapeSheet && !sheetEnDestination) ? 'lecture' : 'formulaire');
+  const urlSource = w.sheet_url ?? (sheetEnDestination ? procedure.source_url ?? null : etapeSheet?.url ?? procedure.source_url ?? null);
+  // Lue par l'agent, une adresse fausse n'est qu'un indice : il retrouve le document par son nom. On garde la meilleure qu'on ait.
+  const sheetUrl = source === 'formulaire' || source === 'aucune' ? null : (await reparerUneFois(urlSource)) ?? (source === 'sheet' ? null : urlSource);
+  const sourceNom = w.source_nom ?? procedure.source_nom ?? (sheetEnDestination ? null : etapeSheet?.ecran ?? null);
   const pret = destinations.length > 0 && destinations.every((d) => d.url)
     && (source !== 'sheet' || !!sheetUrl) && (source !== 'lecture' || !!(sheetUrl || sourceNom));
   let agent = w.agent;

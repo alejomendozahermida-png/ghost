@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
   try {
     const etape = await lireCapture(id, image!, barre);
-    const workflow = await detecter(id, !!etape?.fin_de_tache);
+    const workflow = await detecter(id, !!etape && (etape.fin_de_tache || etape.nouvelle_tache));
     return Response.json({ etape, workflow });
   } catch (e) {
     // Une capture illisible n'arrête pas l'observation.

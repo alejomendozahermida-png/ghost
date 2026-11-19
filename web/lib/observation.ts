@@ -37,7 +37,9 @@ Rends UNIQUEMENT ce JSON : {"url": "adresse telle qu'affichée, ou null si aucun
 
 // Lit une capture et garde seulement sa description (jamais l'image). Renvoie null si rien d'utile.
 // barre : le haut de la fenêtre, net et agrandi, envoyé seulement quand il a changé ; sinon l'adresse est celle de l'étape d'avant.
-export async function lireCapture(observationId: string, image: string, barre?: string | null): Promise<Etape | null> {
+const ETAPES_MIN_TACHE = 3;
+
+export async function lireCapture(observationId: string, image: string, barre?: string | null): Promise<(Etape & { nouvelle_tache: boolean }) | null> {
   const [l, adresse] = await Promise.all([
     holo<Lecture>(LIRE, image),
     barre ? holo<{ url: string | null }>(ADRESSE, barre).catch(() => null) : Promise.resolve(null),
@@ -59,13 +61,24 @@ export async function lireCapture(observationId: string, image: string, barre?: 
   }
   if (derniere && (['site', 'ecran', 'action', 'champ', 'valeur'] as const).every((c) => derniere[c] === l[c])) return null;
 
+  // Beaucoup de tâches n'affichent aucune confirmation (une cellule remplie, un champ copié) : revenir à l'écran
+  // où la tâche a commencé, après quelques étapes, la termine aussi (on passe au ticket, à la ligne suivante).
+  if (derniere && !derniere.fin_de_tache) {
+    const { data: tacheEnCours } = await db.from('etapes').select('id, site, ecran').eq('observation_id', observationId).eq('tache', derniere.tache).order('id');
+    const debut = tacheEnCours?.[0];
+    if (debut && (tacheEnCours?.length ?? 0) >= ETAPES_MIN_TACHE && debut.site === l.site && debut.ecran === l.ecran) {
+      await db.from('etapes').update({ fin_de_tache: true }).eq('id', derniere.id);
+      derniere.fin_de_tache = true;
+    }
+  }
   const tache = derniere ? derniere.tache + (derniere.fin_de_tache ? 1 : 0) : 0;
   const { data } = await db
     .from('etapes')
     .insert({ observation_id: observationId, tache, site: l.site, ecran: l.ecran, action: l.action, champ: l.champ, valeur: l.valeur, url: l.url, fin_de_tache: !!l.fin_de_tache })
     .select('*')
     .single<Etape>();
-  return data;
+  // nouvelle_tache : la tâche d'avant vient de se terminer, avec ou sans confirmation à l'écran.
+  return data && { ...data, nouvelle_tache: !!derniere && tache > derniere.tache };
 }
 
 const MEME = `Voici des tâches observées sur le poste d'une personne, chacune sous forme d'étapes (site · écran · action · champ).

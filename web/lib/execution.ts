@@ -131,10 +131,10 @@ function messageLecture(w: Workflow, consigne: string, faites: string[]): string
     'Lecture seulement : ne modifie rien, ne publie rien, ne va sur aucun site de destination.',
     w.sheet_url ? `Ouvre ${nom} : ${w.sheet_url}` : `Ouvre ${nom}.`,
     `Si l'adresse ne s'ouvre pas, retrouve ce document par son nom (par exemple dans Google Drive, avec les identifiants enregistrés).`,
-    `Lignes à lire : ${consigne}.`,
-    faites.length ? `Ces lignes sont déjà faites, ignore-les : ${faites.join(', ')}.` : '',
-    `Pour chaque ligne : dans cle, la valeur de la première colonne ; dans valeurs, chaque colonne (nom exact de l'en-tête) avec sa valeur recopiée caractère par caractère, vide comprise.`,
-    `Au plus ${MAX_LIGNES_LUES} lignes. Si tu ne trouves pas le document, rends lignes = [] et explique pourquoi dans raison.`,
+    `Éléments à lire (lignes d'un tableau, tickets, fiches…) : ${consigne}.`,
+    faites.length ? `Ceux-ci sont déjà faits, ignore-les : ${faites.join(', ')}.` : '',
+    `Pour chacun : dans cle, ce qui l'identifie (première colonne d'un tableau, numéro de ticket) ; dans valeurs, chaque champ (nom exact affiché) avec sa valeur recopiée caractère par caractère, vide comprise.`,
+    `Au plus ${MAX_LIGNES_LUES} éléments. Si tu ne trouves pas la source, rends lignes = [] et explique pourquoi dans raison.`,
   ].filter(Boolean).join('\n');
 }
 
