@@ -11,11 +11,13 @@ const mediane = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Mat
 
 // Temps mesurés, jamais estimés : à la main d'après l'observation, avec Ghost d'après les exécutions réussies.
 async function gain(w: { id: string; observation_id: string | null }) {
-  const { data: etapes } = await db.from('etapes').select('tache, cree_le').eq('observation_id', w.observation_id ?? '');
+  const [{ data: etapes }, { data: execs }] = await Promise.all([
+    db.from('etapes').select('tache, cree_le').eq('observation_id', w.observation_id ?? ''),
+    db.from('executions').select('duree_s, lignes').eq('workflow_id', w.id).eq('statut', 'completed'),
+  ]);
   const parTache = new Map<number, number[]>();
   for (const e of etapes ?? []) parTache.set(e.tache, [...(parTache.get(e.tache) ?? []), Date.parse(e.cree_le)]);
   const manuel = [...parTache.values()].filter((t) => t.length > 1).map((t) => (Math.max(...t) - Math.min(...t)) / 1000);
-  const { data: execs } = await db.from('executions').select('duree_s, lignes').eq('workflow_id', w.id).eq('statut', 'completed');
   const agent = (execs ?? []).filter((e) => e.duree_s).map((e) => e.duree_s / (e.lignes as unknown[]).length);
   return { manuel_s: mediane(manuel), agent_s: mediane(agent), executions: execs?.length ?? 0 };
 }
@@ -28,8 +30,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   let w = await lireWorkflow(id);
   if (!w || w.user_id !== moi.id) return Response.json({ erreur: 'Workflow introuvable.' }, { status: 404 });
   if (w.statut !== 'pret') w = await preparer(id).catch(() => w!);
-  const sheet = w.source === 'sheet' && w.sheet_url ? await lireSheet(w.sheet_url).catch(() => null) : null;
-  return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: await gain(w) });
+  const [sheet, g] = await Promise.all([w.source === 'sheet' && w.sheet_url ? lireSheet(w.sheet_url).catch(() => null) : null, gain(w)]);
+  return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: g });
 }
 
 // Ce que l'utilisateur corrige ou ajoute : la source, les adresses des sites, ses règles métier. L'agent est regénéré.

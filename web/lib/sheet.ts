@@ -37,7 +37,7 @@ export const idSheet = (url: string) => url.match(/\/spreadsheets\/d\/([\w-]+)/)
 export async function lireSheet(url: string): Promise<{ colonnes: string[]; lignes: Ligne[] }> {
   const id = idSheet(url);
   if (!id) throw new Error('Lien Google Sheet invalide.');
-  const r = await fetch(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv`, { cache: 'no-store' });
+  const r = await fetch(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv`, { cache: 'no-store', signal: AbortSignal.timeout(10_000) });
   if (!r.ok) throw new Error(`Google Sheet illisible (${r.status}) : est-il partagé en lecture par lien ?`);
   const [entete, ...corps] = lireCsv(await r.text());
   return {

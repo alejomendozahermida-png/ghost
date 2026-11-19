@@ -1,4 +1,5 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { db } from '@/lib/supabase';
@@ -12,6 +13,14 @@ const MAX_RELANCES = 2; // nouvelles sessions pour un même bien (panne chez H, 
 const FINIS = ['idle', 'completed', 'failed', 'timed_out', 'interrupted'];
 const PHOTO = /photo|image/i;
 const MAX_LIGNES_LUES = 20;
+const CONTROLE = `Règles de l'utilisateur :
+{regles}
+
+Ligne à traiter :
+{ligne}
+
+La ligne respecte-t-elle TOUTES les règles ? Une règle qui ne concerne pas cette ligne est respectée. Une valeur vide ne respecte pas une règle qui l'exige.
+Rends UNIQUEMENT ce JSON : {"respecte": true ou false, "raison": "la règle non respectée et pourquoi, en une phrase, ou null"}`;
 const MAX_SESSIONS = 6; // sessions H ouvertes en même temps pour une exécution
 
 export type Etat = 'ok' | 'faux' | 'absent' | 'sans_photo';
@@ -129,6 +138,17 @@ function messageLecture(w: Workflow, consigne: string, faites: string[]): string
   ].filter(Boolean).join('\n');
 }
 
+// Empreinte des valeurs d'une ligne : une ligne déjà tentée n'est refaite que si ses valeurs ont changé dans la source.
+export const empreinte = (l: Ligne) =>
+  createHash('sha1').update(JSON.stringify(Object.entries(l.valeurs).sort(([a], [b]) => a.localeCompare(b)))).digest('hex');
+
+// Lignes de la source pas encore tentées avec ces valeurs-là. Une ligne marquée avant l'empreinte compte comme faite.
+export async function nouvellesLignes(workflowId: string, lignes: Ligne[]): Promise<Ligne[]> {
+  const { data } = await db.from('lignes_traitees').select('cle_ligne, empreinte').eq('workflow_id', workflowId);
+  const vues = new Map((data ?? []).map((t) => [t.cle_ligne as string, t.empreinte as string | null]));
+  return lignes.filter((l) => l.cle && (!vues.has(l.cle) || (vues.get(l.cle) !== null && vues.get(l.cle) !== empreinte(l))));
+}
+
 const epeler = (t: string) => t.split(/\s+/).map((m) => [...m].join('-')).join(' / ');
 const estNombre = (v: string) => /^[\d\s.,€]+$/.test(v.trim());
 const norme = (v: string) => v.replace(/\s+/g, ' ').trim();
@@ -171,7 +191,7 @@ function messageRelire(publications: { site: string; url: string }[], colonnes: 
 async function photoBase64(valeur: string): Promise<{ nom: string; base64: string } | null> {
   if (!valeur) return null;
   if (/^https?:\/\//.test(valeur)) {
-    const r = await fetch(valeur);
+    const r = await fetch(valeur, { signal: AbortSignal.timeout(15_000) });
     return r.ok ? { nom: valeur.split('/').pop()!.split('?')[0], base64: Buffer.from(await r.arrayBuffer()).toString('base64') } : null;
   }
   const fichier = await readFile(path.join(process.cwd(), 'public', 'photos', path.basename(valeur))).catch(() => null);
@@ -194,7 +214,7 @@ export async function avancer(id: string): Promise<Execution> {
   if (!data.lignes.length) return lireSource(data, w, p);
   const etats: EtatLigne[] = p.lignes ?? data.lignes.map(() => ({}));
   const maj: Partial<Execution> = { resume: null };
-  const traitees: string[] = [];
+  const traitees: { cle_ligne: string; empreinte: string; statut: string }[] = [];
 
   async function avancerLigne(ligne: Ligne, e: EtatLigne): Promise<void> {
     const colonnes = Object.keys(ligne.valeurs).filter((c) => !PHOTO.test(c));
@@ -202,7 +222,8 @@ export async function avancer(id: string): Promise<Execution> {
 
     const terminer = (r: ResultatLigne) => {
       Object.assign(e, { resultat: r, phase: undefined, sessions: undefined, relecture: undefined });
-      if (r.statut === 'publie' && (w.source === 'lecture' || w.source === 'sheet')) traitees.push(r.cle);
+      // Toute ligne tentée est notée, refusée ou en échec comprise : la veille ne la relance pas en boucle, sauf si ses valeurs changent.
+      if (w.source === 'lecture' || w.source === 'sheet') traitees.push({ cle_ligne: r.cle, empreinte: empreinte(ligne), statut: r.statut });
     };
     // Un agent par site, ouvert directement sur le formulaire.
     // shortcut: si un démarrage échoue, les sessions déjà lancées continuent seules chez H ; à arrêter proprement si ça arrive souvent.
@@ -246,10 +267,20 @@ export async function avancer(id: string): Promise<Execution> {
     };
 
     if (!e.phase) {
-      // Une ligne de tableau avec une valeur vide n'est jamais publiée : le contrôle est fait par notre code, pas laissé au jugement de l'agent.
-      const vides = w.source === 'lecture' || w.source === 'sheet' ? colonnes.filter((c) => !ligne.valeurs[c]?.trim()) : [];
-      if (vides.length) terminer({ cle: ligne.cle, statut: 'signale', portails: {}, raison: `Valeur vide : ${vides.join(', ')}. Rien n'a été publié.` });
-      else await lancerAgir(destinations, []).catch((err: Error) => terminer({ cle: ligne.cle, statut: 'echec', portails: {}, raison: `L'agent n'a pas pu démarrer : ${err.message}` }));
+      // Contrôles faits une fois, avant tout agent, au lieu d'être laissés au jugement de chaque agent sur son site.
+      // 1. Une valeur vide bloque seulement si la tâche s'en sert pour remplir un champ.
+      const utilisees = new Set((w.procedure?.champs ?? []).map((c) => c.colonne));
+      const vides = colonnes.filter((c) => utilisees.has(c) && !ligne.valeurs[c]?.trim());
+      if (vides.length) return terminer({ cle: ligne.cle, statut: 'signale', portails: {}, raison: `Valeur vide : ${vides.join(', ')}. Rien n'a été publié.` });
+      // 2. Les règles écrites par l'utilisateur, jugées une seule fois pour la ligne (une erreur de Qwen : on réessaie au prochain appel).
+      const regles = w.regles ?? [];
+      if (regles.length) {
+        const v = await raisonner<{ respecte: boolean; raison: string | null }>(CONTROLE
+          .replace('{regles}', regles.map((r) => `- ${r}`).join('\n'))
+          .replace('{ligne}', Object.entries(ligne.valeurs).filter(([c]) => !PHOTO.test(c)).map(([c, x]) => `- ${c} : « ${x} »`).join('\n')));
+        if (v.respecte === false) return terminer({ cle: ligne.cle, statut: 'signale', portails: {}, raison: `${v.raison ?? 'Une de vos règles n’est pas respectée.'} Rien n'a été publié.` });
+      }
+      await lancerAgir(destinations, []).catch((err: Error) => terminer({ cle: ligne.cle, statut: 'echec', portails: {}, raison: `L'agent n'a pas pu démarrer : ${err.message}` }));
       return;
     }
 
@@ -342,7 +373,7 @@ export async function avancer(id: string): Promise<Execution> {
   }
 
   // Mémoire des lignes faites : la prochaine lecture de la source les ignore.
-  if (traitees.length) await db.from('lignes_traitees').upsert(traitees.map((c) => ({ workflow_id: w.id, cle_ligne: c, execution_id: id })));
+  if (traitees.length) await db.from('lignes_traitees').upsert(traitees.map((t) => ({ ...t, workflow_id: w.id, execution_id: id })));
   const { data: apres } = await db.from('executions').update({ ...maj, verification: p }).eq('id', id).select('*').single<Execution>();
   return apres!;
 }
@@ -359,9 +390,7 @@ async function lireSource(data: Execution, w: Workflow, p: Progres): Promise<Exe
     const direct = !data.session_id && w.sheet_url ? await lireSheet(w.sheet_url).catch(() => null) : null;
     if (direct) {
       // Rapide : le Sheet s'ouvre par lien, Ghost le lit lui-même en une seconde. L'agent ne lit que si ce n'est pas possible.
-      const { data: faites } = await db.from('lignes_traitees').select('cle_ligne').eq('workflow_id', w.id);
-      const dejaFaites = new Set((faites ?? []).map((f) => f.cle_ligne));
-      let choisies = direct.lignes.filter((l) => l.cle && !dejaFaites.has(l.cle));
+      let choisies = await nouvellesLignes(w.id, direct.lignes);
       if (p.consigne) {
         // « M-0143 et M-0144 », « les biens de Lyon » : Qwen choisit parmi toutes les lignes, déjà faites comprises (on peut vouloir refaire).
         const apercu = direct.lignes.map((l) => `${l.cle} : ${Object.values(l.valeurs).filter((v) => v && v !== l.cle).slice(0, 4).join(' · ')}`).join('\n');

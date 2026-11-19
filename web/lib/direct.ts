@@ -41,6 +41,7 @@ async function evenements(sessionId: string): Promise<Evenement[]> {
   const r = await fetch(`https://agp.eu.hcompany.ai/api/v2/sessions/${sessionId}/changes?from_index=0&wait_for_seconds=0&include_events=true`, {
     headers: { Authorization: `Bearer ${process.env.HAI_API_KEY}` },
     cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
   });
   return r.ok ? ((await r.json()).new_events ?? []) : [];
 }
@@ -74,6 +75,6 @@ export async function vueDirecte(sessionId: string) {
 export async function derniereCapture(sessionId: string): Promise<Response | null> {
   const source = (await evenements(sessionId)).filter((e) => e.data?.kind === 'observation_event').at(-1)?.data?.image?.source;
   if (!source) return null;
-  const r = await fetch(source, { headers: { Authorization: `Bearer ${process.env.HAI_API_KEY}` } });
+  const r = await fetch(source, { headers: { Authorization: `Bearer ${process.env.HAI_API_KEY}` }, signal: AbortSignal.timeout(10_000) });
   return r.ok ? new Response(r.body, { headers: { 'Content-Type': r.headers.get('content-type') ?? 'image/png', 'Cache-Control': 'private, max-age=300' } }) : null;
 }

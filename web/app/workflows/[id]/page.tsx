@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { minutes, type Destination, type WorkflowVue } from '@/lib/types';
+import { Preparation } from '@/components/Preparation';
 
 const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
 type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille';
@@ -87,7 +88,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
     ) : null;
 
   if (!w) {
-    return <p className="pt-16 text-[15px] text-discret">{erreur ?? 'Ghost prépare ce workflow : il rédige la procédure et crée l’agent…'}</p>;
+    return erreur ? <p role="alert" className="pt-16 text-[15px] text-alerte">{erreur}</p> : <Preparation titre="Ghost prépare ce workflow" />;
   }
 
   const regles = w.regles ?? [];
@@ -225,10 +226,10 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           )}
 
           {/* La veille n'a de sens que pour une source qui reçoit de nouvelles lignes. */}
-          {source === 'sheet' && <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
+          {(source === 'sheet' || source === 'lecture') && <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
             <div>
               <p id="veille" className="text-[15px] font-medium">Surveiller le Sheet</p>
-              <p className="mt-1 text-sm text-texte">Chaque nouvelle ligne est faite automatiquement.</p>
+              <p className="mt-1 text-sm text-texte">Chaque nouvelle ligne est faite automatiquement, en moins d’une minute. Le Sheet doit s’ouvrir par lien.</p>
             </div>
             <button
               role="switch"

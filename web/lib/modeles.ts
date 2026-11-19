@@ -5,6 +5,7 @@ async function chat(url: string, cle: string, model: string, content: unknown): 
   const r = await fetch(url, {
     method: 'POST',
     cache: 'no-store',
+    signal: AbortSignal.timeout(45_000), // sous la limite de 60 s des routes
     headers: { Authorization: `Bearer ${cle}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, temperature: 0, messages: [{ role: 'user', content }] }),
   });

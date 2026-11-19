@@ -13,6 +13,7 @@ async function h<T>(chemin: string, init: RequestInit = {}): Promise<T> {
   const r = await fetch(API + chemin, {
     ...init,
     cache: 'no-store',
+    signal: AbortSignal.timeout(20_000), // H qui ne répond plus ne bloque pas l'exécution : on réessaie au prochain appel
     headers: { Authorization: `Bearer ${process.env.HAI_API_KEY}`, 'Content-Type': 'application/json' },
   });
   if (!r.ok) throw new HError(r.status, `H ${r.status} sur ${chemin} : ${(await r.text()).slice(0, 300)}`);

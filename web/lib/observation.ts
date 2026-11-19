@@ -109,7 +109,7 @@ async function filetPortails(observationId: string): Promise<{ nom: string; occu
   const depuis = Date.parse(obs!.cree_le);
   const parTitre = new Map<string, number>();
   for (const url of PORTAILS_TEST) {
-    const r = await fetch(url, { cache: 'no-store' }).catch(() => null);
+    const r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (!r?.ok) continue;
     const { annonces } = (await r.json()) as { annonces: { titre: string; cree_le: string }[] };
     for (const t of new Set(annonces.filter((a) => Date.parse(a.cree_le) >= depuis).map((a) => a.titre))) {

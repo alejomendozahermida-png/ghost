@@ -6,6 +6,7 @@ import { minutes, type WorkflowVue } from '@/lib/types';
 import { EcranAgent } from '@/components/EcranAgent';
 import { Logo } from '@/components/Logo';
 import { boutonPrincipal } from '@/components/PageEntete';
+import { ChargementSimple } from '@/components/Preparation';
 
 const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
 const LONG = /description|texte|message|commentaire/i;
@@ -71,7 +72,7 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
     };
   }, [execId, suivi?.statut]);
 
-  if (!w) return <p className="pt-16 text-[15px] text-discret">Chargement du workflow…</p>;
+  if (!w) return <ChargementSimple />;
 
   const sites = (w.destinations ?? []).map((d) => d.site);
   const source = w.source ?? 'sheet';
