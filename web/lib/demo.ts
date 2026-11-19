@@ -6,6 +6,7 @@ export interface Bien {
   ville: string;
   surface_m2: number;
   prix: number;
+  piege?: string; // raison pour laquelle l'agent doit refuser de publier
 }
 
 export interface Workflow {
@@ -44,6 +45,7 @@ export const WORKFLOW_DEMO: Workflow = {
     { ref: 'M-0143', titre: 'Maison familiale avec jardin', ville: 'Palaiseau', surface_m2: 120, prix: 615000 },
     { ref: 'M-0144', titre: 'Studio étudiant proche université', ville: 'Orsay', surface_m2: 24, prix: 139000 },
     { ref: 'M-0145', titre: 'T2 avec terrasse en résidence récente', ville: 'Massy', surface_m2: 45, prix: 238000 },
+    { ref: 'M-T01', titre: 'T2 rénové proche gare', ville: 'Massy', surface_m2: 48, prix: 235000, piege: 'Classe énergie manquante' },
   ],
 };
 
