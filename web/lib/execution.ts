@@ -6,6 +6,7 @@ import { changements, demarrerSession, deposerFichier, envoyer, session, statut,
 import { consigne, correction, mandat, PORTAILS, publieQuelquePart, verifier, type Etat } from '@/lib/annonce';
 
 const MAX_CORRECTIONS = 2;
+const MAX_RELANCES = 1;
 const FINIS = ['idle', 'completed', 'failed', 'timed_out', 'interrupted'];
 
 export interface ResultatLigne {
@@ -20,6 +21,7 @@ export interface Progres {
   courant: number;
   depuis?: string; // début de la session du bien courant : seules les annonces créées après comptent
   photo?: boolean;
+  relances?: number; // nouvelles sessions lancées pour ce bien après une panne chez H
   lien?: string; // écran en direct de l'agent chez H
   cout: number;
   resultats: ResultatLigne[];
@@ -67,7 +69,7 @@ export async function avancer(id: string): Promise<Execution> {
   try {
     if (!data.session_id) {
       const s = await demarrerSession(consigne(m), PORTAILS['Portail A'], 3);
-      Object.assign(p, { depuis: new Date().toISOString(), photo: false, lien: (await session(s.id)).agent_view_url });
+      Object.assign(p, { depuis: new Date().toISOString(), photo: false, relances: 0, lien: (await session(s.id)).agent_view_url });
       Object.assign(maj, { session_id: s.id, etape: 'agent_pret', corrections: 0 });
     } else {
       const sid = data.session_id;
@@ -91,9 +93,16 @@ export async function avancer(id: string): Promise<Execution> {
         const piege = !!m.piege;
         const tout = Object.values(etats).every((e) => e === 'ok');
 
+        const restants = Object.keys(etats).filter((n) => etats[n] !== 'ok');
         if (!piege && !tout && st.status === 'idle' && data.corrections < MAX_CORRECTIONS) {
-          await envoyer(sid, correction(etats));
+          await envoyer(sid, await correction(etats, m, p.depuis!));
           Object.assign(maj, { etape: 'en_cours', corrections: data.corrections + 1 });
+        } else if (!piege && !tout && st.status !== 'idle' && (p.relances ?? 0) < MAX_RELANCES) {
+          // La session est morte chez H (erreur interne, délai) : on sait ce qui manque, on relance sur ces portails seulement.
+          const s = await demarrerSession(consigne(m, restants), PORTAILS[restants[0]], restants.length);
+          p.cout += ch.metrics?.total_cost ?? 0;
+          Object.assign(p, { photo: !restants.includes('Portail C'), relances: (p.relances ?? 0) + 1, lien: (await session(s.id)).agent_view_url });
+          Object.assign(maj, { session_id: s.id, etape: 'agent_pret', corrections: 0 });
         } else {
           const reussi = piege ? rep?.statut === 'signale' && !(await publieQuelquePart(m, p.depuis!)) : tout;
           p.resultats.push({ ref: m.ref, reussi, portails: etats, raison: rep?.raison ?? st.error ?? undefined });

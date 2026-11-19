@@ -28,9 +28,10 @@ const PRIX_M2 = [1500, 6000];
 // « Appartement T3 » -> « A-p-p-a-r-t-e-m-e-n-t / T-3 » : épelé, l'agent ne traduit plus (série du 19/11).
 export const epeler = (t: string) => t.split(/\s+/).map((m) => [...m].join('-')).join(' / ');
 
-export function consigne(m: Mandat): string {
+// `portails` : seulement ceux qui restent à faire (relance après une panne de la session H).
+export function consigne(m: Mandat, portails: string[] = Object.keys(PORTAILS)): string {
   const valeurs = CHAMPS.map((c) => `- ${c} : « ${m[c]} »`).join('\n');
-  const sites = Object.values(PORTAILS).map((u) => `- ${u}`).join('\n');
+  const sites = portails.map((p) => `- ${PORTAILS[p]}`).join('\n');
   return (
     `CONTRÔLE AVANT TOUTE PUBLICATION : vérifie que la classe énergie est renseignée et que le prix au m² ` +
     `(prix ÷ surface) est cohérent, entre ${PRIX_M2[0]} et ${PRIX_M2[1]} €/m². Sinon, ne publie sur aucun site et ` +
@@ -92,16 +93,34 @@ export async function publieQuelquePart(m: Mandat, depuis: string): Promise<bool
   return false;
 }
 
-export function correction(etats: Record<string, Etat>): string {
-  const lignes = Object.entries(etats)
-    .filter(([, e]) => e !== 'ok')
-    .map(([nom, e]) =>
-      e === 'absent'
-        ? `- ${nom} : aucune annonce publiée. Publie-la.`
-        : e === 'sans_photo'
-          ? `- ${nom} : l'annonce n'a pas de photo. Republie-la avec la photo déposée dans /home/hai/Downloads.`
-          : `- ${nom} : un champ ne correspond pas aux valeurs données. Republie une nouvelle annonce avec les valeurs exactes.`,
-    );
+// Les mots qui diffèrent, pour pointer l'erreur exacte (« commerciaux » au lieu de « commerces »).
+function motsFaux(lu: unknown, attendu: unknown): string {
+  const a = String(lu ?? '').split(/\s+/);
+  const b = String(attendu).split(/\s+/);
+  if (a.length !== b.length) return `« ${lu} » au lieu de « ${attendu} »`;
+  return a.flatMap((x, i) => (x === b[i] ? [] : [`« ${x} » au lieu de « ${b[i]} »`])).join(', ');
+}
+
+// Champs faux de la dernière annonce de ce portail créée après `depuis`.
+async function ecarts(nom: string, m: Mandat, depuis: string): Promise<string> {
+  const recentes = await annoncesRecentes(nom, depuis);
+  const derniere = recentes.sort((x, y) => Date.parse(y.cree_le) - Date.parse(x.cree_le))[0];
+  if (!derniere) return '';
+  return CHAMPS.filter((c) => !egal(derniere[c], m[c])).map((c) => `${c} : ${motsFaux(derniere[c], m[c])}`).join(' ; ');
+}
+
+export async function correction(etats: Record<string, Etat>, m: Mandat, depuis: string): Promise<string> {
+  const lignes = await Promise.all(
+    Object.entries(etats)
+      .filter(([, e]) => e !== 'ok')
+      .map(async ([nom, e]) =>
+        e === 'absent'
+          ? `- ${nom} : aucune annonce publiée. Publie-la.`
+          : e === 'sans_photo'
+            ? `- ${nom} : l'annonce n'a pas de photo. Republie-la avec la photo déposée dans /home/hai/Downloads.`
+            : `- ${nom} : ${await ecarts(nom, m, depuis)}. Republie une nouvelle annonce avec les valeurs exactes.`,
+      ),
+  );
   return (
     'Notre vérification sur les portails a trouvé des erreurs :\n' + lignes.join('\n') +
     '\nNe touche pas aux portails corrects. Vide entièrement chaque champ faux (Ctrl+A puis Suppr) avant de retaper ' +
