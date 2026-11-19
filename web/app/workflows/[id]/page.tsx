@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { minutes, type Destination, type WorkflowVue } from '@/lib/types';
 import { Preparation } from '@/components/Preparation';
+import { Declencheurs } from '@/components/Declencheurs';
 
 const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
-type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille';
+type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille' | 'planif' | 'lien';
 type Source = 'lecture' | 'sheet' | 'formulaire' | 'aucune';
 const SOURCES: { id: Source; nom: string; texte: string }[] = [
   { id: 'lecture', nom: 'L’agent la lit', texte: 'Il ouvre le document dans son navigateur, comme vous.' },
@@ -217,6 +218,11 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           </div>
           <p className="mt-4 text-sm text-discret">{w.gain.executions} exécution(s) réussie(s).</p>
 
+          {w.en_cours && (
+            <Link href={`/workflows/${w.id}/lancer?execution=${w.en_cours}`} className="bouton mt-8 flex items-center gap-3 rounded-2xl bg-nuit-clair px-4 py-3 text-sm font-semibold text-nuit">
+              <span aria-hidden="true" className="pulse-doux h-2 w-2 rounded-full bg-nuit" />L’agent travaille en ce moment : suivre
+            </Link>
+          )}
           {pret ? (
             <Link href={`/workflows/${w.id}/lancer`} className="bouton mt-8 block rounded-full bg-nuit py-3.5 text-center text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)]">
               Lancer l’agent
@@ -243,6 +249,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             </button>
           </div>}
           {retour('veille')}
+          {pret && <Declencheurs w={w} envoi={envoi} enregistrer={enregistrer} retour={retour} />}
         </div>
       </aside>
     </div>

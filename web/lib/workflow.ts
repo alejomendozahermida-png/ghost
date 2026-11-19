@@ -5,6 +5,7 @@ import { enregistrerAgent, enregistrerSkill } from '@/lib/h';
 import { lireSheet } from '@/lib/sheet';
 import type { Etape } from '@/lib/observation';
 import { coffreDe } from '@/lib/acces';
+import type { Planification } from '@/lib/planification';
 
 export interface Destination {
   site: string;
@@ -41,6 +42,9 @@ export interface Workflow {
   regles: string[] | null;
   surveillance: boolean;
   user_id: string | null;
+  planification: Planification | null;
+  prochaine_execution: string | null;
+  webhook_jeton: string | null;
 }
 
 const SYNTHESE = `Une personne a été observée pendant qu'elle travaillait. Voici les étapes vues à l'écran, dans l'ordre

@@ -11,6 +11,9 @@ interface Ligne {
   statut: string;
   occurrences: number;
   surveillance: boolean;
+  planification: { frequence: string; heure: string } | null;
+  lien: boolean;
+  en_cours: string | null;
   destinations: { site: string }[] | null;
   derniere_execution: string | null;
   executions: number;
@@ -80,7 +83,14 @@ export default function MesWorkflows() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-[17px] font-semibold tracking-tight text-encre first-letter:uppercase">{w.nom}</p>
+                      {w.en_cours && (
+                        <span className="flex items-center gap-1.5 rounded-full bg-nuit px-2.5 py-0.5 text-xs font-semibold text-white">
+                          <span aria-hidden="true" className="pulse-doux h-1.5 w-1.5 rounded-full bg-white" />En cours
+                        </span>
+                      )}
                       {w.surveillance && <span className="rounded-full bg-succes-clair px-2.5 py-0.5 text-xs font-semibold text-succes">En veille</span>}
+                      {w.planification && <span className="rounded-full bg-nuit-clair px-2.5 py-0.5 text-xs font-semibold text-nuit">Planifié</span>}
+                      {w.lien && <span className="rounded-full bg-nuit-clair px-2.5 py-0.5 text-xs font-semibold text-nuit">Lien actif</span>}
                       {w.statut !== 'pret' && <span className="rounded-full bg-nuit-clair px-2.5 py-0.5 text-xs font-semibold text-nuit">À compléter</span>}
                     </div>
                     <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Sites">

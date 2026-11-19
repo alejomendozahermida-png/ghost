@@ -23,6 +23,10 @@ export interface WorkflowVue {
   destinations: Destination[] | null;
   regles: string[] | null;
   surveillance: boolean;
+  planification: { frequence: 'jour' | 'ouvres' | 'semaine' | 'heure'; heure: string; jour?: number } | null;
+  prochaine_execution: string | null;
+  webhook_jeton: string | null;
+  en_cours: string | null; // exécution en cours de ce workflow, pour la rejoindre
   colonnes: string[];
   lignes: LigneSheet[];
   gain: { manuel_s: number | null; agent_s: number | null; executions: number };

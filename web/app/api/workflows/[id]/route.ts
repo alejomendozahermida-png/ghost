@@ -1,4 +1,6 @@
+import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/supabase';
+import { prochaine, valide, type Planification } from '@/lib/planification';
 import { lireSheet } from '@/lib/sheet';
 import { lireWorkflow, preparer, type Destination } from '@/lib/workflow';
 import { appartient } from '@/lib/proprietaire';
@@ -31,7 +33,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!w || w.user_id !== moi.id) return Response.json({ erreur: 'Workflow introuvable.' }, { status: 404 });
   if (w.statut !== 'pret') w = await preparer(id).catch(() => w!);
   const [sheet, g] = await Promise.all([w.source === 'sheet' && w.sheet_url ? lireSheet(w.sheet_url).catch(() => null) : null, gain(w)]);
-  return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: g });
+  const { data: enCours } = await db.from('executions').select('id').eq('workflow_id', id).eq('statut', 'en_cours').maybeSingle();
+  return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: g, en_cours: enCours?.id ?? null });
 }
 
 // Ce que l'utilisateur corrige ou ajoute : la source, les adresses des sites, ses règles métier. L'agent est regénéré.
@@ -39,7 +42,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const moi = await utilisateur();
   if (!moi || !(await appartient('workflows', id, moi.id))) return NON_CONNECTE();
-  const corps = (await req.json()) as { sheet_url?: string; source?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean };
+  const corps = (await req.json()) as { sheet_url?: string; source?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean; planification?: unknown; webhook?: string };
+
+  // Déclencheurs (heure planifiée, lien) : ils ne changent pas l'agent, rien à regénérer.
+  if ('planification' in corps || 'webhook' in corps) {
+    const actuel = (await lireWorkflow(id))!;
+    const maj: Record<string, unknown> = {};
+    if ('planification' in corps) {
+      if (corps.planification !== null && !valide(corps.planification)) return Response.json({ erreur: 'Planification invalide.' }, { status: 400 });
+      if (corps.planification && actuel.source === 'formulaire') return Response.json({ erreur: 'Cette tâche attend des valeurs à chaque fois : déclenchez-la plutôt par un lien.' }, { status: 400 });
+      maj.planification = corps.planification;
+      maj.prochaine_execution = corps.planification ? prochaine(corps.planification as Planification).toISOString() : null;
+    }
+    if (corps.webhook === 'creer') maj.webhook_jeton = randomBytes(24).toString('base64url'); // 32 caractères, impossible à deviner
+    if (corps.webhook === 'retirer') maj.webhook_jeton = null;
+    const { error: e } = await db.from('workflows').update(maj).eq('id', id);
+    return e ? Response.json({ erreur: e.message }, { status: 400 }) : Response.json(await lireWorkflow(id));
+  }
   if (corps.source !== undefined && !['lecture', 'sheet', 'formulaire', 'aucune'].includes(corps.source)) return Response.json({ erreur: 'Source inconnue.' }, { status: 400 });
   const champs = Object.fromEntries(Object.entries(corps).filter(([k]) => ['sheet_url', 'source', 'destinations', 'regles', 'surveillance'].includes(k)));
   const { error } = await db.from('workflows').update(champs).eq('id', id);

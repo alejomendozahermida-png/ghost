@@ -9,20 +9,23 @@ export async function GET() {
   if (!moi) return NON_CONNECTE();
   const { data: workflows } = await db
     .from('workflows')
-    .select('id, nom, statut, occurrences, surveillance, destinations, cree_le')
+    .select('id, nom, statut, occurrences, surveillance, destinations, planification, webhook_jeton, cree_le')
     .eq('user_id', moi.id)
     .order('cree_le', { ascending: false });
-  const { data: execs } = await db
+  const { data: toutes } = await db
     .from('executions')
-    .select('workflow_id, statut, cree_le')
+    .select('id, workflow_id, statut, cree_le')
     .eq('user_id', moi.id)
-    .neq('statut', 'en_cours')
     .order('cree_le', { ascending: false });
+  const execs = (toutes ?? []).filter((e) => e.statut !== 'en_cours');
   return Response.json(
     (workflows ?? []).map((w) => {
       const siennes = (execs ?? []).filter((e) => e.workflow_id === w.id);
+      const { webhook_jeton, ...reste } = w; // le jeton du lien ne sort pas de la fiche
       return {
-        ...w,
+        ...reste,
+        lien: !!webhook_jeton,
+        en_cours: (toutes ?? []).find((e) => e.workflow_id === w.id && e.statut === 'en_cours')?.id ?? null,
         derniere_execution: siennes[0]?.cree_le ?? null,
         executions: siennes.length,
         reussite: siennes.length ? Math.round((siennes.filter((e) => e.statut === 'completed').length / siennes.length) * 100) : null,

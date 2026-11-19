@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { minutes, type WorkflowVue } from '@/lib/types';
 import { EcranAgent } from '@/components/EcranAgent';
 import { Logo } from '@/components/Logo';
@@ -36,8 +37,10 @@ interface Suivi {
   cree_le: string;
 }
 
-export default function Lancer({ params }: { params: Promise<{ id: string }> }) {
+export default function Lancer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ execution?: string }> }) {
   const { id } = use(params);
+  const { execution } = use(searchParams);
+  const router = useRouter();
   const [w, setW] = useState<WorkflowVue | null>(null);
   const [choix, setChoix] = useState<string[]>([]);
   const [saisie, setSaisie] = useState<Record<string, string>>({});
@@ -45,7 +48,7 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
   const [consigne, setConsigne] = useState('');
   const [lecture, setLecture] = useState(false);
   const [cle] = useState(() => crypto.randomUUID()); // même clé si on relance : pas de doublon
-  const [execId, setExecId] = useState<string | null>(null);
+  const [execId, setExecId] = useState<string | null>(execution ?? null); // ?execution= : on rejoint une exécution déjà lancée
   const [suivi, setSuivi] = useState<Suivi | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -101,7 +104,10 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
       body: JSON.stringify({ workflow_id: id, cles: choix, saisies: source === 'formulaire' ? [saisie] : undefined, consigne, cle_demande: cle }),
     }).catch(() => null);
     const corps = r ? await r.json().catch(() => ({})) : {};
-    if (r?.ok) setExecId(corps.id);
+    if (r?.ok) {
+      setExecId(corps.id);
+      router.replace(`/workflows/${id}/lancer?execution=${corps.id}`); // l'adresse permet de revenir sur ce suivi plus tard
+    }
     else setErreur(corps.erreur ?? 'Le service ne répond pas. Réessayez dans un instant.');
     setEnvoi(false);
   }
@@ -238,6 +244,12 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
         {suivi?.lien_session_h && !fini && (
           <a href={suivi.lien_session_h} target="_blank" rel="noreferrer" className="lien text-sm font-medium text-nuit">Regarder l’agent travailler</a>
         )}
+        {!fini && (
+          <p className="text-sm text-texte">
+            Vous pouvez quitter cette page : l’agent continue seul.{' '}
+            <Link href="/workflows" className="lien font-medium text-nuit">Lancer un autre workflow</Link>
+          </p>
+        )}
       </div>
 
       {!fini && (
@@ -260,7 +272,7 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
 
       <p role="status" className="sr-only">{fini ? suivi?.resume : `Étape : ${ETAPES[etape]}`}</p>
       <ul className="mt-14 divide-y divide-trait border-y border-trait">
-        {lignes.map((l, i) => {
+        {(suivi?.lignes?.length ? suivi.lignes : lignes).map((l, i) => {
           const res = suivi?.resultats.find((r) => r.cle === l.cle);
           const enCours = !res && !fini && !!suivi?.phases?.[i];
           return (
