@@ -51,7 +51,7 @@ function minuteurFiable(ms: number, tic: () => void): () => void {
 
 function notifier(titre: string, texte: string, tag: string) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-  const n = new Notification(titre, { body: texte, tag, requireInteraction: true });
+  const n = new Notification(titre, { body: texte, tag, requireInteraction: true, icon: '/apple-icon' });
   n.onclick = () => { window.focus(); n.close(); };
 }
 

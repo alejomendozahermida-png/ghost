@@ -27,4 +27,5 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|photos/).*)'] };
+// Fichiers publics (icônes, manifeste, photos) : jamais derrière la connexion.
+export const config = { matcher: ['/((?!_next/static|_next/image|icon.svg|apple-icon|manifest.webmanifest|icones/|photos/).*)'] };

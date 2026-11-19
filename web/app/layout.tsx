@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { Notifications } from '@/components/Notifications';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { utilisateur } from '@/lib/session';
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             <span className="text-[17px] font-semibold tracking-tight text-nuit">Ghost</span>
           </Link>
           <Navigation connecte={!!moi} />
+          {moi && <Notifications />}
         </header>
         <main id="contenu" tabIndex={-1} className="mx-auto max-w-5xl px-6 pb-24 outline-none">{children}</main>
       </body>
