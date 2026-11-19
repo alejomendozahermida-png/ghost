@@ -81,3 +81,10 @@ export const deposerFichier = (id: string, nom: string, base64: string) =>
     body: JSON.stringify({ path: `/home/hai/Downloads/${nom}`, content_base64: base64 }),
   });
 export const quota = () => h<{ remaining: number; limit: number }>('/quota/tokens');
+
+// Coffres-forts H : les secrets ne reviennent jamais dans les réponses, seulement la liste des champs remplis.
+export const creerCoffre = (nom: string) =>
+  h<{ id: string }>('/vaults', { method: 'POST', body: JSON.stringify({ name: nom, provider_config: { provider: 'internal' } }) });
+export const ajouterSecret = (coffre: string, nom: string, url: string, valeurs: Record<string, string>) =>
+  h<{ id: string; fields: string[] }>(`/vaults/${coffre}/items`, { method: 'POST', body: JSON.stringify({ name: nom, urls: [url], values: valeurs }) });
+export const retirerSecret = (coffre: string, item: string) => h(`/vaults/${coffre}/items/${item}`, { method: 'DELETE' });

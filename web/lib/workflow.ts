@@ -4,6 +4,7 @@ import { raisonner } from '@/lib/modeles';
 import { enregistrerAgent, enregistrerSkill } from '@/lib/h';
 import { lireSheet } from '@/lib/sheet';
 import type { Etape } from '@/lib/observation';
+import { coffreDe } from '@/lib/acces';
 
 export interface Destination {
   site: string;
@@ -59,6 +60,7 @@ const REGLES_COMMUNES = [
   'Les libellés changent d’un site à l’autre : associe-les par leur sens (titre/intitulé, prix/montant, surface/superficie, ville/commune).',
   'Dans un menu déroulant, choisis l’option qui correspond à la valeur. Coche une case de certification si elle est obligatoire.',
   'Ne paie rien, ne supprime rien, n’écris à personne.',
+  'Si un site demande de se connecter, utilise les identifiants enregistrés pour ce site : ne les invente jamais et ne les demande pas.',
   'Ne réponds qu’une fois chaque site terminé, avec dans publications l’adresse de la page qui montre le résultat (la page publiée).',
 ];
 
@@ -109,6 +111,7 @@ export async function preparer(id: string): Promise<Workflow> {
       `Tu es l'agent Ghost « ${procedure.nom} ». Tu reçois une ligne de données et tu fais la tâche sur les sites de ta Skill « ${nom} », en suivant ses règles.`,
       nom,
       destinations[0].url!,
+      w.user_id ? await coffreDe(w.user_id) : undefined, // ses accès : H remplit les connexions sans que le modèle voie les secrets
     );
     agent = nom;
   }
