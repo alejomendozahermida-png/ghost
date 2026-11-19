@@ -194,8 +194,13 @@ async function photoBase64(valeur: string): Promise<{ nom: string; base64: strin
     const r = await fetch(valeur, { signal: AbortSignal.timeout(15_000) });
     return r.ok ? { nom: valeur.split('/').pop()!.split('?')[0], base64: Buffer.from(await r.arrayBuffer()).toString('base64') } : null;
   }
-  const fichier = await readFile(path.join(process.cwd(), 'public', 'photos', path.basename(valeur))).catch(() => null);
-  return fichier ? { nom: path.basename(valeur), base64: fichier.toString('base64') } : null;
+  const nom = path.basename(valeur);
+  const fichier = await readFile(path.join(process.cwd(), 'public', 'photos', nom)).catch(() => null);
+  if (fichier) return { nom, base64: fichier.toString('base64') };
+  // En ligne, les fichiers de public/ ne sont pas dans la fonction : on les demande au site lui-même.
+  const site = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const r = site ? await fetch(`https://${site}/photos/${encodeURIComponent(nom)}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null) : null;
+  return r?.ok ? { nom, base64: Buffer.from(await r.arrayBuffer()).toString('base64') } : null;
 }
 
 // Fait avancer l'exécution d'un cran. Appelée à chaque rafraîchissement : aucun serveur ne tourne en permanence.

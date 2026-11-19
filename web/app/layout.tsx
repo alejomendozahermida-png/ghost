@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { utilisateur } from '@/lib/session';
@@ -7,8 +7,9 @@ import { Navigation } from '@/components/Navigation';
 import './globals.css';
 
 // Plus Jakarta Sans : professionnelle et chaleureuse (recommandée pour les outils B2B) ; Geist Mono pour les chiffres.
-const jakarta = Plus_Jakarta_Sans({ variable: '--font-jakarta', subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
-const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
+// Polices hébergées avec l'application (variables, latin) : aucune dépendance à Google Fonts au build ni à l'affichage.
+const jakarta = localFont({ src: './polices/plus-jakarta-sans.woff2', variable: '--font-jakarta', weight: '200 800', display: 'swap' });
+const geistMono = localFont({ src: './polices/geist-mono.woff2', variable: '--font-geist-mono', weight: '100 900', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Ghost',
