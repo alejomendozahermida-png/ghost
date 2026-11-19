@@ -3,10 +3,18 @@
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { minutes, type WorkflowVue } from '@/lib/types';
+import { EcranAgent } from '@/components/EcranAgent';
+import { Logo } from '@/components/Logo';
 
 const ETAPES = ['Demande reçue', 'Agent prêt', 'Agent en cours', 'Vérification', 'Terminé'];
 const INDEX: Record<string, number> = { recue: 0, agent_pret: 1, en_cours: 2, verification: 3, terminee: 4 };
 const ETAT: Record<string, string> = { faux: 'valeur fausse', absent: 'absente' };
+const PHRASE: Record<string, string> = {
+  recue: 'Ghost prépare la demande…',
+  agent_pret: 'L’agent démarre son navigateur…',
+  en_cours: 'L’agent travaille sur les sites…',
+  verification: 'Ghost relit les pages publiées…',
+};
 
 interface Suivi {
   statut: 'en_cours' | 'completed' | 'failed';
@@ -121,16 +129,25 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
   const ecoule = suivi?.duree_s ?? (suivi && maintenant ? Math.max(0, Math.round((maintenant - Date.parse(suivi.cree_le)) / 1000)) : 0);
 
   return (
-    <section className="mx-auto max-w-3xl pt-10">
-      <h1 className="text-4xl font-semibold tracking-[-0.02em]">
-        {!fini ? 'L’agent travaille' : suivi?.statut === 'completed' ? 'Terminé' : 'Terminé avec des erreurs'}
-      </h1>
+    <section className="mx-auto max-w-5xl pt-10">
+      <div className="flex items-center gap-5">
+        {fini && <Logo taille={64} anime humeur={suivi?.statut === 'completed' ? 'joie' : 'souci'} decoratif />}
+        <h1 className="text-4xl font-semibold tracking-[-0.02em]">
+          {!fini ? 'L’agent travaille' : suivi?.statut === 'completed' ? 'Terminé' : 'Terminé avec des erreurs'}
+        </h1>
+      </div>
       <div className="mt-3 flex flex-wrap items-center gap-6">
         <p className="font-mono text-[15px] text-discret">{minutes(ecoule)}</p>
         {suivi?.lien_session_h && !fini && (
           <a href={suivi.lien_session_h} target="_blank" rel="noreferrer" className="lien text-sm font-medium text-nuit">Regarder l’agent travailler</a>
         )}
       </div>
+
+      {!fini && (
+        <div className="mt-10">
+          <EcranAgent executionId={execId} actif={!fini} phrase={PHRASE[suivi?.etape ?? 'recue'] ?? PHRASE.en_cours} />
+        </div>
+      )}
 
       <ol className="mt-10 grid grid-cols-5 gap-2" aria-label="Avancement">
         {ETAPES.map((e, i) => (

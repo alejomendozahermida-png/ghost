@@ -187,7 +187,7 @@ export default function Observer() {
   return (
     <section className="grid gap-12 pt-10 md:grid-cols-[1fr_1.5fr]">
       <aside className="md:sticky md:top-10 md:self-start">
-        <Logo taille={120} anime={etat === 'en_cours'} decoratif />
+        <Logo taille={120} anime humeur={repere ? 'joie' : etat === 'en_cours' ? 'observe' : 'repos'} decoratif />
         <div className="mt-8 flex items-center gap-3">
           <span className={`h-2.5 w-2.5 rounded-full ${etat === 'en_cours' ? 'pulse-doux bg-alerte' : 'bg-discret'}`} />
           <span className="text-[15px] font-medium">{etat === 'en_cours' ? 'Observation en cours' : 'En pause'}</span>

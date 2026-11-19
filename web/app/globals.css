@@ -46,6 +46,26 @@ body {
   95% { transform: scaleY(0.1); }
 }
 .flotter { animation: flotter 5s ease-in-out infinite; }
+/* Humeurs du fantôme : il observe (les yeux balaient), il travaille (il s'active), il est content (il sautille). */
+@keyframes scruter { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-4px); } 70% { transform: translateX(4px); } }
+@keyframes affairer { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-3px, -2px); } 45% { transform: translate(3px, 1px); } 70% { transform: translate(2px, -2px); } }
+@keyframes besogner { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-3deg); } }
+@keyframes sautiller { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-12px); } 55% { transform: translateY(-12px) rotate(4deg); } }
+.scruter { animation: scruter 3.2s ease-in-out infinite; }
+.affairer { animation: affairer 1.6s ease-in-out infinite; }
+.besogner { animation: besogner 1.2s ease-in-out infinite; transform-origin: 50% 90%; }
+.sautiller { animation: sautiller 1.4s cubic-bezier(0.16, 1, 0.3, 1) 2; transform-origin: 50% 90%; }
+
+/* Vue en direct de l'agent : l'écran change en fondu, le pointeur laisse une onde là où il clique. */
+@keyframes fondu { from { opacity: 0; } to { opacity: 1; } }
+@keyframes onde { from { transform: translate(-50%, -50%) scale(0.4); opacity: 0.7; } to { transform: translate(-50%, -50%) scale(2.6); opacity: 0; } }
+@keyframes balayage { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.fondu { animation: fondu 0.5s var(--ease-doux) both; }
+.onde { animation: onde 1.1s var(--ease-doux) infinite; }
+.attente {
+  background: linear-gradient(90deg, #eceae4 0%, #f7f7f5 50%, #eceae4 100%) 0 0 / 200% 100%;
+  animation: balayage 1.6s linear infinite;
+}
 .cligner { transform-box: fill-box; transform-origin: center; animation: cligner 4.5s infinite; }
 
 /* Boutons : montent au survol, s'enfoncent à l'appui. Liens : le soulignement se dessine. */
@@ -77,6 +97,6 @@ body {
 .pulse-doux { animation: pulse-doux 1.6s ease-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .monter, .flotter, .cligner, .pulse-doux, .flux, .remplir { animation: none; }
+  .monter, .flotter, .cligner, .pulse-doux, .flux, .remplir, .scruter, .affairer, .besogner, .sautiller, .fondu, .onde, .attente { animation: none; }
   .bouton:hover, .bouton:active { transform: none; }
 }
