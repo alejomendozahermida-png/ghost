@@ -1,25 +1,45 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Logo } from '@/components/Logo';
 
 type Etat = 'pret' | 'en_cours' | 'pause';
 interface Ligne {
-  site: string;
-  action: string;
+  id: number;
+  site: string | null;
+  texte: string;
+}
+interface Repere {
+  id: string;
+  nom: string;
+  occurrences: number;
+}
+interface Etape {
+  id: number;
+  site: string | null;
+  ecran: string | null;
+  action: string | null;
+  champ: string | null;
+  valeur: string | null;
+  fin_de_tache: boolean;
 }
 
-// shortcut: observation simulée pour construire l'écran ; à remplacer par le vrai partage d'écran (useObservation).
-const SCENARIO: Ligne[] = [
-  { site: 'Google Sheet', action: 'Lit la ligne 1 : Appartement T3 lumineux, Massy' },
-  { site: 'Portail A', action: 'Ouvre « Déposer une annonce »' },
-  { site: 'Portail A', action: 'Remplit le titre, le prix et la surface' },
-  { site: 'Portail A', action: 'Publie l’annonce' },
-  { site: 'Portail B', action: 'Ouvre « Nouvelle annonce »' },
-  { site: 'Portail B', action: 'Remplit l’intitulé, le montant et la commune' },
-  { site: 'Portail B', action: 'Publie l’annonce' },
-];
+const INTERVALLE_MS = 2000;
+const SEUIL_CHANGEMENT = 3; // écart moyen de gris (0-255) entre deux vignettes au-delà duquel l'écran a changé
+
+function phrase(e: Etape): string {
+  if (e.fin_de_tache) return `Termine : ${e.ecran ?? 'confirmation affichée'}`;
+  const sur = e.champ ? ` « ${e.champ} »` : '';
+  switch (e.action) {
+    case 'type': return `Remplit${sur}${e.valeur ? ` : ${e.valeur}` : ''}`;
+    case 'click': case 'submit': return `Clique sur${sur}`;
+    case 'select': return `Choisit${sur}${e.valeur ? ` : ${e.valeur}` : ''}`;
+    case 'check': return `Coche${sur}`;
+    case 'read': return `Lit ${e.ecran ?? 'la page'}`;
+    default: return `Ouvre ${e.ecran ?? 'une page'}`;
+  }
+}
 
 function duree(s: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -29,30 +49,113 @@ export default function Observer() {
   const [etat, setEtat] = useState<Etat>('pret');
   const [secondes, setSecondes] = useState(0);
   const [lignes, setLignes] = useState<Ligne[]>([]);
-  const repere = lignes.length === SCENARIO.length;
+  const [repere, setRepere] = useState<Repere | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const flux = useRef<MediaStream | null>(null);
+  const pause = useRef(false);
 
   useEffect(() => {
+    pause.current = etat === 'pause';
     if (etat !== 'en_cours') return;
     const t = setInterval(() => setSecondes((s) => s + 1), 1000);
-    const l = setInterval(
-      () => setLignes((ls) => (ls.length < SCENARIO.length ? [...ls, SCENARIO[ls.length]] : ls)),
-      2600,
-    );
-    return () => {
-      clearInterval(t);
-      clearInterval(l);
-    };
+    return () => clearInterval(t);
   }, [etat]);
 
-  useEffect(() => {
-    if (repere && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification('Workflow repéré', { body: 'Publier un bien sur plusieurs portails. Vous l’avez fait 2 fois.' });
-    }
-  }, [repere]);
+  useEffect(() => () => flux.current?.getTracks().forEach((t) => t.stop()), []);
+
+  function arreter() {
+    flux.current?.getTracks().forEach((t) => t.stop());
+    flux.current = null;
+    setEtat('pret');
+  }
 
   async function demarrer() {
+    setErreur(null);
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') await Notification.requestPermission();
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 }, audio: false });
+    } catch {
+      setErreur('Le partage d’écran a été refusé. Sans lui, Ghost ne peut rien voir.');
+      return;
+    }
+    const r = await fetch('/api/observations', { method: 'POST' });
+    if (!r.ok) {
+      stream.getTracks().forEach((t) => t.stop());
+      setErreur('Impossible de démarrer l’observation. Réessayez.');
+      return;
+    }
+    const { id } = (await r.json()) as { id: string };
+    flux.current = stream;
+    stream.getVideoTracks()[0].addEventListener('ended', arreter); // bouton « Arrêter le partage » de Chrome
+    setSecondes(0);
+    setLignes([]);
+    setRepere(null);
     setEtat('en_cours');
+    observer(id, stream);
+  }
+
+  // Une image toutes les 2 s ; seules celles qui ont changé partent au serveur, une à la fois.
+  function observer(id: string, stream: MediaStream) {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.srcObject = stream;
+    video.play();
+    const mini = document.createElement('canvas');
+    mini.width = 32;
+    mini.height = 18;
+    const grande = document.createElement('canvas');
+    let precedente: Uint8ClampedArray | null = null;
+    let enVol = false;
+    let enAttente: string | null = null;
+    let notifie = false;
+
+    async function envoyer(image: string) {
+      enVol = true;
+      const r = await fetch(`/api/observations/${id}/captures`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image }),
+      }).catch(() => null);
+      const d = r?.ok ? ((await r.json()) as { etape: Etape | null; workflow: Repere | null }) : null;
+      if (d?.etape) {
+        const e = d.etape;
+        setLignes((ls) => [{ id: e.id, site: e.site, texte: phrase(e) }, ...ls]);
+      }
+      if (d?.workflow && !notifie) {
+        notifie = true;
+        setRepere(d.workflow);
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification('Workflow repéré', { body: `${d.workflow.nom}. Vous l’avez fait ${d.workflow.occurrences} fois.` });
+        }
+      }
+      enVol = false;
+      if (enAttente) {
+        const suivante = enAttente;
+        enAttente = null;
+        envoyer(suivante);
+      }
+    }
+
+    const minuteur = setInterval(() => {
+      if (!flux.current) return clearInterval(minuteur);
+      if (pause.current || !video.videoWidth) return;
+      const m = mini.getContext('2d', { willReadFrequently: true })!;
+      m.drawImage(video, 0, 0, 32, 18);
+      const pixels = m.getImageData(0, 0, 32, 18).data;
+      let ecart = 0;
+      if (precedente) for (let i = 0; i < pixels.length; i += 4) ecart += Math.abs(pixels[i] - precedente[i]);
+      const change = !precedente || ecart / (pixels.length / 4) > SEUIL_CHANGEMENT;
+      precedente = pixels;
+      if (!change) return;
+      const echelle = Math.min(1, 1280 / video.videoWidth);
+      grande.width = Math.round(video.videoWidth * echelle);
+      grande.height = Math.round(video.videoHeight * echelle);
+      grande.getContext('2d')!.drawImage(video, 0, 0, grande.width, grande.height);
+      const image = grande.toDataURL('image/jpeg', 0.7);
+      if (enVol) enAttente = image; // on garde seulement la plus récente
+      else envoyer(image);
+    }, INTERVALLE_MS);
   }
 
   if (etat === 'pret') {
@@ -73,6 +176,7 @@ export default function Observer() {
         >
           Démarrer l’observation
         </button>
+        {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
       </section>
     );
   }
@@ -93,14 +197,7 @@ export default function Observer() {
           >
             {etat === 'en_cours' ? 'Pause' : 'Reprendre'}
           </button>
-          <button
-            onClick={() => {
-              setEtat('pret');
-              setSecondes(0);
-              setLignes([]);
-            }}
-            className="bouton rounded-full px-5 py-3 text-sm font-medium text-alerte hover:bg-alerte-clair"
-          >
+          <button onClick={arreter} className="bouton rounded-full px-5 py-3 text-sm font-medium text-alerte hover:bg-alerte-clair">
             Arrêter
           </button>
         </div>
@@ -109,13 +206,11 @@ export default function Observer() {
       <div>
         {repere && (
           <div className="monter mb-10 rounded-2xl bg-nuit p-7 text-white shadow-[0_24px_60px_-24px_rgb(11_29_69/0.7)]">
-            <p className="text-sm text-white/60">Workflow repéré</p>
-            <p className="mt-2 text-2xl font-semibold tracking-tight">Publier un bien sur plusieurs portails</p>
-            <p className="mt-2 text-[15px] text-white/70">Vous l’avez fait 2 fois. Ghost peut le faire à votre place.</p>
-            <Link
-              href="/workflows/demo"
-              className="bouton mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-medium text-nuit"
-            >
+            <p className="text-sm text-white/70">Workflow repéré</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{repere.nom}</p>
+            <p className="mt-2 text-[15px] text-white/70">Vous l’avez fait {repere.occurrences} fois. Ghost peut le faire à votre place.</p>
+            {/* shortcut: la fiche affiche le workflow de démonstration ; à remplacer par la procédure générée pour ce workflow. */}
+            <Link href="/workflows/demo" className="bouton mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-medium text-nuit">
               Voir ce que Ghost a compris
             </Link>
           </div>
@@ -125,10 +220,10 @@ export default function Observer() {
           <p className="mt-6 text-[15px] text-discret">En attente de votre première action…</p>
         ) : (
           <ol className="mt-4 divide-y divide-trait">
-            {[...lignes].reverse().map((l, i) => (
-              <li key={lignes.length - i} className="monter flex gap-6 py-4">
+            {lignes.map((l) => (
+              <li key={l.id} className="monter flex gap-6 py-4">
                 <span className="w-28 shrink-0 text-sm font-medium text-nuit">{l.site}</span>
-                <span className="text-[15px] text-texte">{l.action}</span>
+                <span className="text-[15px] text-texte">{l.texte}</span>
               </li>
             ))}
           </ol>
