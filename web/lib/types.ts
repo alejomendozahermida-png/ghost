@@ -18,6 +18,8 @@ export interface WorkflowVue {
   procedure: { objectif: string; etapes: { site: string; texte: string }[]; champs: { champ: string; colonne: string }[] } | null;
   agent: string | null;
   sheet_url: string | null;
+  source: 'lecture' | 'sheet' | 'formulaire' | 'aucune' | null;
+  source_nom: string | null;
   destinations: Destination[] | null;
   regles: string[] | null;
   surveillance: boolean;

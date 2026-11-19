@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { utilisateur } from '@/lib/session';
 import { Navigation } from '@/components/Navigation';
 import './globals.css';
 
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
+// Plus Jakarta Sans : professionnelle et chaleureuse (recommandée pour les outils B2B) ; Geist Mono pour les chiffres.
+const jakarta = Plus_Jakarta_Sans({ variable: '--font-jakarta', subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const moi = await utilisateur();
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${jakarta.variable} ${geistMono.variable} antialiased`}>
         <a href="#contenu" className="sr-only rounded-full bg-nuit text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-6 focus:top-4 focus:z-30 focus:px-5 focus:py-3">
           Aller au contenu
         </a>

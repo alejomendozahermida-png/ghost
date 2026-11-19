@@ -5,15 +5,23 @@ import { use, useEffect, useState } from 'react';
 import { minutes, type Destination, type WorkflowVue } from '@/lib/types';
 
 const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
-type Section = 'sheet' | 'sites' | 'regles' | 'veille';
+type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille';
+type Source = 'lecture' | 'sheet' | 'formulaire' | 'aucune';
+const SOURCES: { id: Source; nom: string; texte: string }[] = [
+  { id: 'lecture', nom: 'L’agent la lit', texte: 'Il ouvre le document dans son navigateur, comme vous.' },
+  { id: 'sheet', nom: 'Sheet connecté', texte: 'Ghost lit le tableau directement. Plus rapide.' },
+  { id: 'formulaire', nom: 'Formulaire', texte: 'Vous donnez les valeurs au lancement, ou collez un texte.' },
+  { id: 'aucune', nom: 'Aucune donnée', texte: 'La tâche se refait à l’identique.' },
+];
+const NOM_SOURCE: Record<Source, string> = { lecture: 'Votre source', sheet: 'Google Sheet', formulaire: 'Vos données', aucune: 'Ghost' };
 const titre = 'mt-14 text-sm font-medium uppercase tracking-[0.14em] text-discret';
 
 // Source à gauche, sites à droite, reliés par des courbes où passent des impulsions.
-function Trajet({ sites }: { sites: string[] }) {
+function Trajet({ sites, depart }: { sites: string[]; depart: string }) {
   const h = Math.max(200, sites.length * 64 + 8);
   const ys = sites.map((_, i) => (h / (sites.length + 1)) * (i + 1));
   return (
-    <svg viewBox={`0 0 560 ${h}`} className="w-full" role="img" aria-label={`Google Sheet vers ${sites.join(', ')}`}>
+    <svg viewBox={`0 0 560 ${h}`} className="w-full" role="img" aria-label={`${depart} vers ${sites.join(', ')}`}>
       {ys.map((y) => (
         <g key={y}>
           <path d={`M150 ${h / 2} C 260 ${h / 2}, 300 ${y}, 400 ${y}`} fill="none" stroke="#e6e6e1" strokeWidth="2" />
@@ -21,7 +29,7 @@ function Trajet({ sites }: { sites: string[] }) {
         </g>
       ))}
       <rect x="0" y={h / 2 - 22} width="150" height="44" rx="22" fill="#0b1d45" />
-      <text x="75" y={h / 2 + 5} textAnchor="middle" fontSize="14" fontWeight="500" fill="#fff">Google Sheet</text>
+      <text x="75" y={h / 2 + 5} textAnchor="middle" fontSize="14" fontWeight="500" fill="#fff">{depart}</text>
       {sites.map((d, i) => (
         <g key={d}>
           <rect x="400" y={ys[i] - 20} width="160" height="40" rx="20" fill="#fff" stroke="#e6e6e1" />
@@ -84,7 +92,9 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
 
   const regles = w.regles ?? [];
   const pret = w.statut === 'pret';
-  const manque = [!w.sheet_url && 'le lien du Google Sheet', sites.some((s) => !s.url) && 'l’adresse de chaque site'].filter(Boolean);
+  const source: Source = w.source ?? 'sheet';
+  const depart = source === 'lecture' && w.source_nom ? w.source_nom.slice(0, 18) : NOM_SOURCE[source];
+  const manque = [source === 'sheet' && !w.sheet_url && 'le lien du Google Sheet', source === 'lecture' && !w.sheet_url && !w.source_nom && 'l’adresse du document source', sites.some((s) => !s.url) && 'l’adresse de chaque site'].filter(Boolean);
 
   return (
     <div className="grid gap-16 pt-10 md:grid-cols-[1.5fr_1fr]">
@@ -98,8 +108,8 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {sites.length > 0 && (
           <div className="monter mt-12 [animation-delay:160ms]">
             {/* Sur téléphone, le schéma rétréci rendrait ses textes illisibles : une phrase le remplace. */}
-            <div className="hidden sm:block"><Trajet sites={sites.map((s) => s.site)} /></div>
-            <p className="text-[15px] text-texte sm:hidden">Google Sheet <span aria-hidden="true">→</span><span className="sr-only">vers</span> {sites.map((s) => s.site).join(', ')}</p>
+            <div className="hidden sm:block"><Trajet sites={sites.map((s) => s.site)} depart={depart} /></div>
+            <p className="text-[15px] text-texte sm:hidden">{depart} <span aria-hidden="true">→</span><span className="sr-only">vers</span> {sites.map((s) => s.site).join(', ')}</p>
           </div>
         )}
 
@@ -118,21 +128,44 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
               ))}
             </ol>
 
-            <h2 className={titre}>Ce qui change à chaque fois</h2>
+            {w.procedure.champs.length > 0 && <h2 className={titre}>Ce qui change à chaque fois</h2>}
             <ul className="mt-4 flex flex-wrap gap-2">
-              {w.procedure.champs.map((c) => (
-                <li key={c.colonne} className="rounded-full border border-trait bg-surface px-4 py-2 text-sm text-encre">{c.colonne}</li>
+              {/* Une colonne peut remplir plusieurs champs (un par site) : on l'affiche une fois. */}
+              {[...new Set(w.procedure.champs.map((c) => c.colonne))].map((colonne) => (
+                <li key={colonne} className="rounded-full border border-trait bg-surface px-4 py-2 text-sm text-encre">{colonne}</li>
               ))}
             </ul>
           </>
         )}
 
         <h2 className={titre}>Source des données</h2>
-        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); enregistrer({ sheet_url: sheet }, 'sheet'); }}>
+        <div role="radiogroup" aria-label="Source des données" className="mt-4 grid gap-2 sm:grid-cols-2">
+          {SOURCES.map((x) => (
+            <button
+              key={x.id}
+              role="radio"
+              aria-checked={source === x.id}
+              disabled={envoi}
+              onClick={() => source !== x.id && enregistrer({ source: x.id }, 'source')}
+              className={`bouton rounded-2xl border px-4 py-3.5 text-left transition-colors disabled:opacity-60 ${source === x.id ? 'border-nuit bg-nuit-clair' : 'border-trait bg-surface hover:border-encre/30'}`}
+            >
+              <span className="block text-[15px] font-semibold text-encre">{x.nom}</span>
+              <span className="mt-0.5 block text-sm text-texte">{x.texte}</span>
+            </button>
+          ))}
+        </div>
+        {retour('source')}
+        {source === 'lecture' && (
+          <p className="mt-4 text-sm text-texte">
+            {w.source_nom ? <>Document vu pendant l’observation : <span className="font-medium text-encre">{w.source_nom}</span>. </> : null}
+            L’adresse ci-dessous n’est qu’un indice : si elle ne s’ouvre pas, l’agent cherche le document par son nom.
+          </p>
+        )}
+        {(source === 'sheet' || source === 'lecture') && <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); enregistrer({ sheet_url: sheet }, 'sheet'); }}>
           <label htmlFor="sheet" className="sr-only">Lien du Google Sheet</label>
           <input id="sheet" value={sheet} onChange={(e) => setSheet(e.target.value)} placeholder="Lien du Google Sheet, partagé en lecture" className={champ} />
           <button disabled={envoi || sheet === (w.sheet_url ?? '')} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'sheet' ? 'Enregistrement…' : 'Enregistrer'}</button>
-        </form>
+        </form>}
         {retour('sheet')}
 
         <h2 className={titre}>Sites</h2>
@@ -191,7 +224,8 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             <p className="mt-8 rounded-2xl bg-nuit-clair p-4 text-sm text-nuit">Pour créer l’agent, il manque {manque.join(' et ') || 'une information'}.</p>
           )}
 
-          <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
+          {/* La veille n'a de sens que pour une source qui reçoit de nouvelles lignes. */}
+          {source === 'sheet' && <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
             <div>
               <p id="veille" className="text-[15px] font-medium">Surveiller le Sheet</p>
               <p className="mt-1 text-sm text-texte">Chaque nouvelle ligne est faite automatiquement.</p>
@@ -206,7 +240,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             >
               <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] duration-300 ${w.surveillance ? 'left-7' : 'left-1'}`} />
             </button>
-          </div>
+          </div>}
           {retour('veille')}
         </div>
       </aside>

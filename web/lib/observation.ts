@@ -30,9 +30,18 @@ Rends UNIQUEMENT ce JSON :
  "ecran_connexion": true si c'est une page de connexion ou de saisie de mot de passe, sinon false}
 N'invente rien : si rien ne change, mets "action": "none".`;
 
+const ADRESSE = `Image agrandie du haut d'une fenêtre de navigateur (onglets, barre d'adresse).
+Recopie l'adresse de la barre d'adresse caractère par caractère, sans rien corriger, compléter ni deviner.
+Attention aux caractères proches : l et I et 1, O et 0, rn et m, a et e, i et j.
+Rends UNIQUEMENT ce JSON : {"url": "adresse telle qu'affichée, ou null si aucune barre d'adresse n'est visible"}`;
+
 // Lit une capture et garde seulement sa description (jamais l'image). Renvoie null si rien d'utile.
-export async function lireCapture(observationId: string, image: string): Promise<Etape | null> {
-  const l = await holo<Lecture>(LIRE, image);
+// barre : le haut de la fenêtre, net et agrandi, envoyé seulement quand il a changé ; sinon l'adresse est celle de l'étape d'avant.
+export async function lireCapture(observationId: string, image: string, barre?: string | null): Promise<Etape | null> {
+  const [l, adresse] = await Promise.all([
+    holo<Lecture>(LIRE, image),
+    barre ? holo<{ url: string | null }>(ADRESSE, barre).catch(() => null) : Promise.resolve(null),
+  ]);
   if (l.ecran_connexion) return null;
 
   const { data: derniere } = await db
@@ -43,6 +52,7 @@ export async function lireCapture(observationId: string, image: string): Promise
     .limit(1)
     .maybeSingle<Etape>();
   // Un écran qui ne bouge pas : seule son arrivée compte (une navigation). Même écran, même action : rien de nouveau.
+  l.url = adresse?.url?.replace(/\s+/g, '') || (barre ? l.url : derniere?.url ?? l.url);
   if (l.action === 'none') {
     if (derniere?.site === l.site && derniere?.ecran === l.ecran) return null;
     l.action = 'navigate';

@@ -28,7 +28,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   let w = await lireWorkflow(id);
   if (!w || w.user_id !== moi.id) return Response.json({ erreur: 'Workflow introuvable.' }, { status: 404 });
   if (w.statut !== 'pret') w = await preparer(id).catch(() => w!);
-  const sheet = w.sheet_url ? await lireSheet(w.sheet_url).catch(() => null) : null;
+  const sheet = w.source === 'sheet' && w.sheet_url ? await lireSheet(w.sheet_url).catch(() => null) : null;
   return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: await gain(w) });
 }
 
@@ -37,8 +37,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const moi = await utilisateur();
   if (!moi || !(await appartient('workflows', id, moi.id))) return NON_CONNECTE();
-  const corps = (await req.json()) as { sheet_url?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean };
-  const champs = Object.fromEntries(Object.entries(corps).filter(([k]) => ['sheet_url', 'destinations', 'regles', 'surveillance'].includes(k)));
+  const corps = (await req.json()) as { sheet_url?: string; source?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean };
+  if (corps.source !== undefined && !['lecture', 'sheet', 'formulaire', 'aucune'].includes(corps.source)) return Response.json({ erreur: 'Source inconnue.' }, { status: 400 });
+  const champs = Object.fromEntries(Object.entries(corps).filter(([k]) => ['sheet_url', 'source', 'destinations', 'regles', 'surveillance'].includes(k)));
   const { error } = await db.from('workflows').update(champs).eq('id', id);
   if (error) return Response.json({ erreur: error.message }, { status: 400 });
   const seuleVeille = 'surveillance' in champs && Object.keys(champs).length === 1;
