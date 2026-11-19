@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { utilisateur } from '@/lib/session';
+import { Navigation } from '@/components/Navigation';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -18,27 +19,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="fr">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+        <a href="#contenu" className="sr-only rounded-full bg-nuit text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-6 focus:top-4 focus:z-30 focus:px-5 focus:py-3">
+          Aller au contenu
+        </a>
+        <header className="relative mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
           <Link href="/" className="flex items-center gap-2.5 rounded-md focus-visible:outline-2 focus-visible:outline-nuit">
-            <Logo taille={30} />
+            <Logo taille={30} decoratif />
             <span className="text-[17px] font-semibold tracking-tight text-nuit">Ghost</span>
           </Link>
-          <nav className="flex items-center gap-7 text-sm text-texte">
-            {moi ? (
-              <>
-                <Link href="/observer" className="lien py-3 hover:text-encre">Observer</Link>
-                <Link href="/workflows" className="lien py-3 hover:text-encre">Mes workflows</Link>
-                <Link href="/acces" className="lien py-3 hover:text-encre">Mes accès</Link>
-                <form action="/api/deconnexion" method="post">
-                  <button title={moi.email} className="lien py-3 text-discret hover:text-encre">Se déconnecter</button>
-                </form>
-              </>
-            ) : (
-              <Link href="/connexion" className="bouton rounded-full border border-trait bg-surface px-5 py-2.5 font-medium text-encre">Se connecter</Link>
-            )}
-          </nav>
+          <Navigation connecte={!!moi} />
         </header>
-        <main className="mx-auto max-w-5xl px-6 pb-24">{children}</main>
+        <main id="contenu" tabIndex={-1} className="mx-auto max-w-5xl px-6 pb-24 outline-none">{children}</main>
       </body>
     </html>
   );

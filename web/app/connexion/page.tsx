@@ -5,7 +5,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Logo } from '@/components/Logo';
 
 const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-const champ = 'w-full rounded-xl border border-trait bg-surface px-4 py-3.5 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3.5 text-[15px] outline-none transition focus:border-nuit';
 
 export default function Connexion() {
   const [mode, setMode] = useState<'connexion' | 'inscription'>('connexion');
@@ -30,7 +30,7 @@ export default function Connexion() {
 
   return (
     <section className="mx-auto max-w-sm pt-16">
-      <Logo taille={56} />
+      <Logo taille={56} decoratif />
       <h1 className="monter mt-8 text-3xl font-semibold tracking-[-0.02em]">{mode === 'connexion' ? 'Se connecter' : 'Créer un compte'}</h1>
       <form onSubmit={valider} className="monter mt-8 space-y-4 [animation-delay:80ms]">
         <div>

@@ -138,11 +138,13 @@ export default function Lancer({ params }: { params: Promise<{ id: string }> }) 
             <div className="h-1 overflow-hidden rounded-full bg-trait">
               <div className={`h-1 rounded-full bg-nuit transition-[width] duration-700 ease-[var(--ease-doux)] ${i < etape || fini ? 'w-full' : i === etape ? 'w-1/2' : 'w-0'}`} />
             </div>
-            <p className={`mt-3 text-sm ${i <= etape ? 'font-medium text-encre' : 'text-discret'}`}>{e}</p>
+            {/* Sur téléphone, seule l'étape en cours garde son libellé : cinq libellés ne tiennent pas sur une ligne. */}
+            <p className={`mt-3 text-sm ${i <= etape ? 'font-medium text-encre' : 'text-discret'} ${i === etape || fini ? '' : 'hidden sm:block'}`}>{e}</p>
           </li>
         ))}
       </ol>
 
+      <p role="status" className="sr-only">{fini ? suivi?.resume : `Étape : ${ETAPES[etape]}`}</p>
       <ul className="mt-14 divide-y divide-trait border-y border-trait">
         {lignes.map((l, i) => {
           const res = suivi?.resultats.find((r) => r.cle === l.cle);

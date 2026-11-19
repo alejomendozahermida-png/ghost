@@ -51,6 +51,7 @@ export default function Observer() {
   const [lignes, setLignes] = useState<Ligne[]>([]);
   const [repere, setRepere] = useState<Repere | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [illisibles, setIllisibles] = useState(0); // captures que Holo n'a pas pu lire
   const flux = useRef<MediaStream | null>(null);
   const pause = useRef(false);
 
@@ -91,6 +92,7 @@ export default function Observer() {
     setSecondes(0);
     setLignes([]);
     setRepere(null);
+    setIllisibles(0);
     setEtat('en_cours');
     observer(id, stream);
   }
@@ -117,7 +119,8 @@ export default function Observer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image }),
       }).catch(() => null);
-      const d = r?.ok ? ((await r.json()) as { etape: Etape | null; workflow: Repere | null }) : null;
+      const d = r?.ok ? ((await r.json()) as { etape: Etape | null; workflow: Repere | null; erreur?: string }) : null;
+      if (!d || d.erreur) setIllisibles((n) => n + 1);
       if (d?.etape) {
         const e = d.etape;
         setLignes((ls) => [{ id: e.id, site: e.site, texte: phrase(e) }, ...ls]);
@@ -184,7 +187,7 @@ export default function Observer() {
   return (
     <section className="grid gap-12 pt-10 md:grid-cols-[1fr_1.5fr]">
       <aside className="md:sticky md:top-10 md:self-start">
-        <Logo taille={120} anime={etat === 'en_cours'} />
+        <Logo taille={120} anime={etat === 'en_cours'} decoratif />
         <div className="mt-8 flex items-center gap-3">
           <span className={`h-2.5 w-2.5 rounded-full ${etat === 'en_cours' ? 'pulse-doux bg-alerte' : 'bg-discret'}`} />
           <span className="text-[15px] font-medium">{etat === 'en_cours' ? 'Observation en cours' : 'En pause'}</span>
@@ -205,7 +208,7 @@ export default function Observer() {
 
       <div>
         {repere && (
-          <div className="monter mb-10 rounded-2xl bg-nuit p-7 text-white shadow-[0_24px_60px_-24px_rgb(11_29_69/0.7)]">
+          <div role="status" className="monter mb-10 rounded-2xl bg-nuit p-7 text-white shadow-[0_24px_60px_-24px_rgb(11_29_69/0.7)]">
             <p className="text-sm text-white/70">Workflow repéré</p>
             <p className="mt-2 text-2xl font-semibold tracking-tight">{repere.nom}</p>
             <p className="mt-2 text-[15px] text-white/70">Vous l’avez fait {repere.occurrences} fois. Ghost peut le faire à votre place.</p>
@@ -215,10 +218,15 @@ export default function Observer() {
           </div>
         )}
         <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-discret">Ce que Ghost voit</h2>
+        {illisibles > 0 && (
+          <p className="mt-3 text-sm text-discret">
+            {illisibles} écran{illisibles > 1 ? "s" : ""} n’{illisibles > 1 ? "ont" : "a"} pas pu être lu{illisibles > 1 ? "s" : ""}. L’observation continue.
+          </p>
+        )}
         {lignes.length === 0 ? (
           <p className="mt-6 text-[15px] text-discret">En attente de votre première action…</p>
         ) : (
-          <ol className="mt-4 divide-y divide-trait">
+          <ol aria-live="polite" aria-relevant="additions" className="mt-4 divide-y divide-trait">
             {lignes.map((l) => (
               <li key={l.id} className="monter flex gap-6 py-4">
                 <span className="w-28 shrink-0 text-sm font-medium text-nuit">{l.site}</span>

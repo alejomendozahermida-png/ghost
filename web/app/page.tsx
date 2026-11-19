@@ -29,7 +29,7 @@ export default function Accueil() {
           </div>
         </div>
         <div className="monter flex justify-center [animation-delay:150ms] md:justify-end">
-          <Logo taille={260} anime />
+          <Logo taille={260} anime decoratif />
         </div>
       </section>
 

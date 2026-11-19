@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { minutes, type Destination, type WorkflowVue } from '@/lib/types';
 
-const champ = 'w-full rounded-xl border border-trait bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+type Section = 'sheet' | 'sites' | 'regles' | 'veille';
 const titre = 'mt-14 text-sm font-medium uppercase tracking-[0.14em] text-discret';
 
 // Source à gauche, sites à droite, reliés par des courbes où passent des impulsions.
@@ -35,7 +36,10 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const [w, setW] = useState<WorkflowVue | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [envoi, setEnvoi] = useState(false);
+  // Section en cours d'enregistrement, et erreur rattachée à sa section (affichée à côté du champ).
+  const [enCours, setEnCours] = useState<Section | null>(null);
+  const [erreurDe, setErreurDe] = useState<{ section: Section; texte: string } | null>(null);
+  const envoi = enCours !== null;
   const [sheet, setSheet] = useState('');
   const [sites, setSites] = useState<Destination[]>([]);
   const [regle, setRegle] = useState('');
@@ -52,19 +56,27 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
   }, [id]);
 
   // Toute correction regénère la Skill et l'agent H côté serveur.
-  async function enregistrer(corps: object) {
-    setEnvoi(true);
+  async function enregistrer(corps: object, section: Section) {
+    setEnCours(section);
+    setErreurDe(null);
     const r = await fetch(`/api/workflows/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
     const d = await r.json();
-    if (d.erreur) setErreur(d.erreur);
+    if (d.erreur) setErreurDe({ section, texte: d.erreur });
     else {
       const frais = await (await fetch(`/api/workflows/${id}`)).json();
       setW(frais);
       setSites(frais.destinations ?? []);
-      setErreur(null);
     }
-    setEnvoi(false);
+    setEnCours(null);
   }
+
+  // Retour visible pendant la regénération de l'agent (environ 10 s), puis l'erreur éventuelle, à côté de la section.
+  const retour = (section: Section) =>
+    enCours === section ? (
+      <p role="status" className="mt-3 text-sm text-nuit">Enregistrement… Ghost met l’agent à jour, environ 10 secondes.</p>
+    ) : erreurDe?.section === section ? (
+      <p role="alert" className="mt-3 text-sm text-alerte">{erreurDe.texte}</p>
+    ) : null;
 
   if (!w) {
     return <p className="pt-16 text-[15px] text-discret">{erreur ?? 'Ghost prépare ce workflow : il rédige la procédure et crée l’agent…'}</p>;
@@ -85,7 +97,9 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
 
         {sites.length > 0 && (
           <div className="monter mt-12 [animation-delay:160ms]">
-            <Trajet sites={sites.map((s) => s.site)} />
+            {/* Sur téléphone, le schéma rétréci rendrait ses textes illisibles : une phrase le remplace. */}
+            <div className="hidden sm:block"><Trajet sites={sites.map((s) => s.site)} /></div>
+            <p className="text-[15px] text-texte sm:hidden">Google Sheet <span aria-hidden="true">→</span><span className="sr-only">vers</span> {sites.map((s) => s.site).join(', ')}</p>
           </div>
         )}
 
@@ -114,11 +128,12 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         )}
 
         <h2 className={titre}>Source des données</h2>
-        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); enregistrer({ sheet_url: sheet }); }}>
+        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); enregistrer({ sheet_url: sheet }, 'sheet'); }}>
           <label htmlFor="sheet" className="sr-only">Lien du Google Sheet</label>
           <input id="sheet" value={sheet} onChange={(e) => setSheet(e.target.value)} placeholder="Lien du Google Sheet, partagé en lecture" className={champ} />
-          <button disabled={envoi || sheet === (w.sheet_url ?? '')} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">Enregistrer</button>
+          <button disabled={envoi || sheet === (w.sheet_url ?? '')} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'sheet' ? 'Enregistrement…' : 'Enregistrer'}</button>
         </form>
+        {retour('sheet')}
 
         <h2 className={titre}>Sites</h2>
         <ul className="mt-4 space-y-3">
@@ -132,24 +147,25 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         </ul>
         <div className="mt-4 flex gap-3">
           <button onClick={() => setSites([...sites, { site: `Site ${sites.length + 1}`, url: '' }])} className="bouton rounded-full border border-trait bg-surface px-5 py-3 text-sm font-medium">Ajouter un site</button>
-          <button disabled={envoi} onClick={() => enregistrer({ destinations: sites })} className="bouton rounded-full bg-nuit px-5 py-3 text-sm font-medium text-white disabled:opacity-40">Enregistrer les sites</button>
+          <button disabled={envoi} onClick={() => enregistrer({ destinations: sites }, 'sites')} className="bouton rounded-full bg-nuit px-5 py-3 text-sm font-medium text-white disabled:opacity-40">{enCours === 'sites' ? 'Enregistrement…' : 'Enregistrer les sites'}</button>
         </div>
+        {retour('sites')}
 
         <h2 className={titre}>Vos règles</h2>
         <ul className="mt-4 space-y-3 text-[15px] text-texte">
           {regles.map((r) => (
             <li key={r} className="flex items-start justify-between gap-4 border-l-2 border-nuit/20 pl-4">
               {r}
-              <button aria-label="Retirer la règle" onClick={() => enregistrer({ regles: regles.filter((x) => x !== r) })} className="bouton shrink-0 rounded-full px-3 text-discret hover:text-alerte">×</button>
+              <button aria-label="Retirer la règle" disabled={envoi} onClick={() => enregistrer({ regles: regles.filter((x) => x !== r) }, 'regles')} className="bouton -mt-2.5 h-11 w-11 shrink-0 rounded-full text-discret hover:bg-alerte-clair hover:text-alerte disabled:opacity-40">×</button>
             </li>
           ))}
         </ul>
-        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); if (regle.trim()) enregistrer({ regles: [...regles, regle.trim()] }).then(() => setRegle('')); }}>
+        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); if (regle.trim()) enregistrer({ regles: [...regles, regle.trim()] }, 'regles').then(() => setRegle('')); }}>
           <label htmlFor="regle" className="sr-only">Nouvelle règle</label>
           <input id="regle" value={regle} onChange={(e) => setRegle(e.target.value)} placeholder="Ex. : ne rien publier si le prix au m² dépasse 6 000 €" className={champ} />
-          <button disabled={envoi || !regle.trim()} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">Ajouter</button>
+          <button disabled={envoi || !regle.trim()} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'regles' ? 'Enregistrement…' : 'Ajouter'}</button>
         </form>
-        {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
+        {retour('regles')}
       </article>
 
       <aside className="md:sticky md:top-10 md:self-start">
@@ -185,12 +201,13 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
               aria-checked={w.surveillance}
               aria-labelledby="veille"
               disabled={!pret || envoi}
-              onClick={() => enregistrer({ surveillance: !w.surveillance })}
+              onClick={() => enregistrer({ surveillance: !w.surveillance }, 'veille')}
               className={`bouton relative mt-0.5 h-8 w-14 shrink-0 rounded-full disabled:opacity-40 ${w.surveillance ? 'bg-succes' : 'bg-trait'}`}
             >
               <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] duration-300 ${w.surveillance ? 'left-7' : 'left-1'}`} />
             </button>
           </div>
+          {retour('veille')}
         </div>
       </aside>
     </div>

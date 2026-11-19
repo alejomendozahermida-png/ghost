@@ -9,7 +9,7 @@ interface Acces {
   cree_le: string;
 }
 
-const champ = 'w-full rounded-xl border border-trait bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
 const VIDE = { plateforme: '', url: '', identifiant: '', motDePasse: '', totp: '' };
 
 export default function MesAcces() {
@@ -19,6 +19,7 @@ export default function MesAcces() {
   const [deuxFacteurs, setDeuxFacteurs] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  const [aConfirmer, setAConfirmer] = useState<string | null>(null); // retrait demandé, en attente de confirmation
 
   const charger = () => fetch('/api/acces').then((r) => r.json()).then(setListe);
   useEffect(() => {
@@ -38,8 +39,8 @@ export default function MesAcces() {
   }
 
   async function retirer(a: Acces) {
-    if (!confirm(`Retirer l’accès à ${a.plateforme} ? Il sera effacé du coffre-fort.`)) return;
     await fetch(`/api/acces/${a.id}`, { method: 'DELETE' });
+    setAConfirmer(null);
     charger();
   }
 
@@ -103,10 +104,18 @@ export default function MesAcces() {
                 <p className="text-[15px] font-medium text-encre">{a.plateforme}</p>
                 <p className="mt-1 text-sm text-texte">{a.url}</p>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="rounded-full bg-succes-clair px-3 py-1.5 text-sm text-succes">Protégé</span>
-                <button onClick={() => retirer(a)} className="bouton rounded-full px-4 py-2.5 text-sm text-alerte hover:bg-alerte-clair">Retirer</button>
-              </div>
+              {aConfirmer === a.id ? (
+                <div role="group" aria-label={`Retirer l’accès à ${a.plateforme}`} className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="text-sm text-texte">Effacer du coffre-fort ?</span>
+                  <button onClick={() => retirer(a)} className="bouton rounded-full bg-alerte px-4 py-2.5 text-sm font-medium text-white">Retirer</button>
+                  <button onClick={() => setAConfirmer(null)} className="bouton rounded-full px-4 py-2.5 text-sm text-texte">Annuler</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <span className="rounded-full bg-succes-clair px-3 py-1.5 text-sm text-succes">Protégé</span>
+                  <button onClick={() => setAConfirmer(a.id)} className="bouton rounded-full px-4 py-2.5 text-sm text-alerte hover:bg-alerte-clair">Retirer</button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

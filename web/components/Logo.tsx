@@ -1,17 +1,17 @@
 interface LogoProps {
   taille?: number;
   anime?: boolean;
+  decoratif?: boolean; // à côté du mot « Ghost » ou purement visuel : caché des lecteurs d'écran
 }
 
 // Le fantôme Ghost : la visière est un trou (le fond passe au travers), seuls les yeux restent pleins.
-export function Logo({ taille = 32, anime = false }: LogoProps) {
+export function Logo({ taille = 32, anime = false, decoratif = false }: LogoProps) {
   return (
     <svg
       viewBox="0 0 100 92"
       width={taille}
       height={(taille * 92) / 100}
-      role="img"
-      aria-label="Ghost"
+      {...(decoratif ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'Ghost' })}
       className={anime ? 'flotter' : undefined}
     >
       <path
