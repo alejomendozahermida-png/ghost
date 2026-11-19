@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from '@/components/Logo';
+import { notifier, type ResultatNotification } from '@/lib/notifier';
 import { boutonPrincipal } from '@/components/PageEntete';
 
 const GARANTIES = [
@@ -49,11 +50,6 @@ function minuteurFiable(ms: number, tic: () => void): () => void {
   return () => { w.terminate(); URL.revokeObjectURL(url); };
 }
 
-function notifier(titre: string, texte: string, tag: string) {
-  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-  const n = new Notification(titre, { body: texte, tag, requireInteraction: true, icon: '/apple-icon' });
-  n.onclick = () => { window.focus(); n.close(); };
-}
 
 function phrase(e: Etape): string {
   if (e.fin_de_tache) return `Termine : ${e.ecran ?? 'confirmation affichée'}`;
@@ -80,7 +76,7 @@ export default function Observer() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [illisibles, setIllisibles] = useState(0); // captures que Holo n'a pas pu lire
   const [permission, setPermission] = useState<Permission>('default');
-  const [teste, setTeste] = useState(false);
+  const [teste, setTeste] = useState<ResultatNotification | null>(null);
   const flux = useRef<MediaStream | null>(null);
   const pause = useRef(false);
 
@@ -102,9 +98,10 @@ export default function Observer() {
     setPermission(await Notification.requestPermission());
   }
 
-  function tester() {
-    notifier('Ghost', 'Les notifications fonctionnent. Vous serez prévenu ici.', 'ghost-test');
-    setTeste(true);
+  async function tester() {
+    // Une étiquette nouvelle à chaque essai : avec la même, le navigateur remplace l'ancienne sans rien montrer.
+    setTeste(await notifier('Ghost', 'Les notifications fonctionnent. Vous serez prévenu ici.', { tag: `ghost-essai-${Date.now()}` }));
+    setPermission(Notification.permission);
   }
 
   useEffect(() => {
@@ -182,7 +179,7 @@ export default function Observer() {
       if (d?.workflow && !notifie) {
         notifie = true;
         setRepere(d.workflow);
-        notifier('Ghost a repéré une tâche répétitive', `${d.workflow.nom}. Vous l’avez faite ${d.workflow.occurrences} fois : Ghost peut s’en charger.`, `ghost-${d.workflow.id}`);
+        notifier('Ghost a repéré une tâche répétitive', `${d.workflow.nom}. Vous l’avez faite ${d.workflow.occurrences} fois : Ghost peut s’en charger.`, { tag: `ghost-${d.workflow.id}`, lien: `/workflows/${d.workflow.id}`, garder: true });
       }
       enVol = false;
       if (enAttente) {
@@ -293,7 +290,13 @@ export default function Observer() {
             ) : null}
           </div>
           {teste && (
-            <p role="status" className="mt-1 text-sm text-discret">Rien ne s’est affiché ? Coupez « Ne pas déranger » dans Windows et autorisez Chrome dans Paramètres › Système › Notifications.</p>
+            <p role="status" className={`mt-1 max-w-lg text-sm ${teste === 'envoyee' ? 'text-discret' : 'text-alerte'}`}>
+              {teste === 'envoyee'
+                ? 'Envoyée par Ghost. Rien ne s’affiche ? Le blocage vient du système : coupez « Ne pas déranger » (Windows : Paramètres › Système › Notifications, puis autorisez Chrome ; Mac : Réglages › Notifications › Chrome).'
+                : teste === 'non_autorisee'
+                  ? 'Les notifications ne sont pas autorisées pour ce site : autorisez-les avec l’icône à gauche de l’adresse, puis rechargez.'
+                  : 'Ce navigateur ne sait pas afficher de notifications. Ouvrez Ghost dans Chrome, Edge ou Firefox (sur iPhone : ajoutez d’abord Ghost à l’écran d’accueil).'}
+            </p>
           )}
           {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
         </div>

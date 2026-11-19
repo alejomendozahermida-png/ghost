@@ -28,4 +28,4 @@ export async function middleware(req: NextRequest) {
 }
 
 // Fichiers publics (icônes, manifeste, photos) : jamais derrière la connexion.
-export const config = { matcher: ['/((?!_next/static|_next/image|icon.svg|apple-icon|manifest.webmanifest|icones/|photos/).*)'] };
+export const config = { matcher: ['/((?!_next/static|_next/image|icon.svg|apple-icon|manifest.webmanifest|icones/|photos/|sw.js).*)'] };

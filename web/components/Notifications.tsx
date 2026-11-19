@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { notifier } from '@/lib/notifier';
 
 const INTERVALLE_MS = 20_000;
 const CLE = 'ghost-notifiees';
@@ -24,8 +25,7 @@ export function Notifications() {
       // Au premier passage, ce qui est déjà terminé n'est pas une nouvelle : on le note sans prévenir.
       if (!premier && Notification.permission === 'granted') {
         for (const f of fins.filter((x) => !vues.has(x.id))) {
-          const n = new Notification(f.titre, { body: f.texte, tag: f.id, icon: '/apple-icon' });
-          n.onclick = () => { window.focus(); window.location.href = f.lien; n.close(); };
+          await notifier(f.titre, f.texte, { tag: f.id, lien: f.lien });
         }
       }
       premier = false;
