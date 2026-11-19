@@ -1,7 +1,6 @@
 import 'server-only';
 import { db } from '@/lib/supabase';
 import { holo, raisonner } from '@/lib/modeles';
-import { PORTAILS } from '@/lib/annonce';
 
 export interface Etape {
   id: number;
@@ -92,13 +91,15 @@ export async function detecter(observationId: string, finDeTache: boolean): Prom
   return data;
 }
 
-// Filet de sécurité : la même annonce publiée sur 2 portails depuis le début de l'observation.
+// Filet de sécurité propre à nos sites de test : la même annonce publiée sur 2 portails depuis le début de l'observation.
+// shortcut: ne vaut que pour nos 3 portails (leur API de lecture) ; ailleurs, seuls Holo et Qwen repèrent la tâche.
+const PORTAILS_TEST = ['a', 'b', 'c'].map((x) => `https://ghost-portail-${x}.vercel.app/api/annonces`);
 async function filetPortails(observationId: string): Promise<{ nom: string; occurrences: number } | null> {
   const { data: obs } = await db.from('observations').select('cree_le').eq('id', observationId).single();
   const depuis = Date.parse(obs!.cree_le);
   const parTitre = new Map<string, number>();
-  for (const url of Object.values(PORTAILS)) {
-    const r = await fetch(url.replace(/\/[^/]+$/, '') + '/api/annonces', { cache: 'no-store' }).catch(() => null);
+  for (const url of PORTAILS_TEST) {
+    const r = await fetch(url, { cache: 'no-store' }).catch(() => null);
     if (!r?.ok) continue;
     const { annonces } = (await r.json()) as { annonces: { titre: string; cree_le: string }[] };
     for (const t of new Set(annonces.filter((a) => Date.parse(a.cree_le) >= depuis).map((a) => a.titre))) {

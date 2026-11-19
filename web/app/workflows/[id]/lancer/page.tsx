@@ -1,19 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { minutes, WORKFLOW_DEMO as w, WORKFLOW_DEMO_UUID } from '@/lib/demo';
+import { use, useEffect, useState } from 'react';
+import { minutes, type WorkflowVue } from '@/lib/types';
 
 const ETAPES = ['Demande reçue', 'Agent prêt', 'Agent en cours', 'Vérification', 'Terminé'];
 const INDEX: Record<string, number> = { recue: 0, agent_pret: 1, en_cours: 2, verification: 3, terminee: 4 };
-const PRIX = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-const ETAT: Record<string, string> = { faux: 'champ faux', absent: 'absente', sans_photo: 'sans photo' };
+const ETAT: Record<string, string> = { faux: 'valeur fausse', absent: 'absente' };
 
 interface Suivi {
   statut: 'en_cours' | 'completed' | 'failed';
   etape: string;
   courant: number;
-  resultats: { ref: string; reussi: boolean; portails: Record<string, string>; raison?: string }[];
+  resultats: { cle: string; statut: 'publie' | 'signale' | 'echec'; portails: Record<string, string>; raison?: string }[];
   lien_session_h: string | null;
   resume: string | null;
   duree_s: number | null;
@@ -21,15 +20,20 @@ interface Suivi {
   cree_le: string;
 }
 
-export default function Lancer() {
-  const [choix, setChoix] = useState<string[]>(w.lignes.slice(0, 1).map((l) => l.ref));
+export default function Lancer({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [w, setW] = useState<WorkflowVue | null>(null);
+  const [choix, setChoix] = useState<string[]>([]);
   const [cle] = useState(() => crypto.randomUUID()); // même clé si on relance : pas de doublon
   const [execId, setExecId] = useState<string | null>(null);
   const [suivi, setSuivi] = useState<Suivi | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [maintenant, setMaintenant] = useState(0);
-  const lignes = w.lignes.filter((l) => choix.includes(l.ref));
+
+  useEffect(() => {
+    fetch(`/api/workflows/${id}`).then((r) => r.json()).then(setW);
+  }, [id]);
 
   useEffect(() => {
     if (!execId || suivi?.statut === 'completed' || suivi?.statut === 'failed') return;
@@ -48,13 +52,20 @@ export default function Lancer() {
     };
   }, [execId, suivi?.statut]);
 
+  if (!w) return <p className="pt-16 text-[15px] text-discret">Chargement du workflow…</p>;
+
+  const sites = (w.destinations ?? []).map((d) => d.site);
+  const [, colTitre, ...autres] = w.colonnes;
+  const detail = autres.filter((c) => !/photo|image|description/i.test(c)).slice(0, 3);
+  const lignes = w.lignes.filter((l) => choix.includes(l.cle));
+
   async function lancer() {
     setEnvoi(true);
     setErreur(null);
     const r = await fetch('/api/executions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workflow_id: WORKFLOW_DEMO_UUID, refs: choix, cle_demande: cle }),
+      body: JSON.stringify({ workflow_id: id, cles: choix, cle_demande: cle }),
     }).catch(() => null);
     const corps = r ? await r.json().catch(() => ({})) : {};
     if (r?.ok) setExecId(corps.id);
@@ -65,32 +76,32 @@ export default function Lancer() {
   if (!execId) {
     return (
       <section className="mx-auto max-w-2xl pt-10">
-        <Link href={`/workflows/${w.id}`} className="lien text-sm text-discret">{w.nom}</Link>
-        <h1 className="monter mt-4 text-4xl font-semibold tracking-[-0.02em]">Quels biens publier ?</h1>
-        <p className="monter mt-3 text-lg text-texte [animation-delay:80ms]">Les lignes de votre Google Sheet qui ne sont pas encore publiées.</p>
+        <Link href={`/workflows/${id}`} className="lien text-sm text-discret first-letter:uppercase">{w.nom}</Link>
+        <h1 className="monter mt-4 text-4xl font-semibold tracking-[-0.02em]">Quelles lignes traiter ?</h1>
+        <p className="monter mt-3 text-lg text-texte [animation-delay:80ms]">Les lignes de votre Google Sheet. L’agent les fait sur {sites.join(', ')}.</p>
 
         <fieldset className="monter mt-10 divide-y divide-trait border-y border-trait [animation-delay:160ms]">
-          <legend className="sr-only">Biens à publier</legend>
+          <legend className="sr-only">Lignes à traiter</legend>
           {w.lignes.map((l) => (
-            <label key={l.ref} className="flex cursor-pointer items-center gap-5 py-5 transition-colors hover:bg-surface/70">
+            <label key={l.cle} className="flex cursor-pointer items-center gap-5 py-5 transition-colors hover:bg-surface/70">
               <input
                 type="checkbox"
-                checked={choix.includes(l.ref)}
-                onChange={(e) => setChoix(e.target.checked ? [...choix, l.ref] : choix.filter((r) => r !== l.ref))}
+                checked={choix.includes(l.cle)}
+                onChange={(e) => setChoix(e.target.checked ? [...choix, l.cle] : choix.filter((r) => r !== l.cle))}
                 className="h-5 w-5 accent-nuit"
               />
               <span className="flex-1">
-                <span className="block text-[15px] font-medium text-encre">{l.titre}</span>
-                <span className="mt-0.5 block text-sm text-texte">{l.ville} · {l.surface_m2} m² · {PRIX.format(l.prix)}</span>
+                <span className="block text-[15px] font-medium text-encre">{colTitre ? l.valeurs[colTitre] : l.cle}</span>
+                <span className="mt-0.5 block text-sm text-texte">{detail.map((c) => l.valeurs[c]).filter(Boolean).join(' · ')}</span>
               </span>
-              <span className="font-mono text-sm text-discret">{l.ref}</span>
+              <span className="font-mono text-sm text-discret">{l.cle}</span>
             </label>
           ))}
         </fieldset>
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-6">
           <p className="text-sm text-texte">
-            Environ {minutes(lignes.length * w.gain.agent_s)} pour {lignes.length} bien{lignes.length > 1 ? 's' : ''} sur 3 portails.
+            {w.gain.agent_s ? `Environ ${minutes(lignes.length * w.gain.agent_s)} pour ${lignes.length} ligne(s).` : `${lignes.length} ligne(s) choisie(s).`}
           </p>
           <button
             disabled={lignes.length === 0 || envoi}
@@ -117,9 +128,7 @@ export default function Lancer() {
       <div className="mt-3 flex flex-wrap items-center gap-6">
         <p className="font-mono text-[15px] text-discret">{minutes(ecoule)}</p>
         {suivi?.lien_session_h && !fini && (
-          <a href={suivi.lien_session_h} target="_blank" rel="noreferrer" className="lien text-sm font-medium text-nuit">
-            Regarder l’agent travailler
-          </a>
+          <a href={suivi.lien_session_h} target="_blank" rel="noreferrer" className="lien text-sm font-medium text-nuit">Regarder l’agent travailler</a>
         )}
       </div>
 
@@ -136,32 +145,23 @@ export default function Lancer() {
 
       <ul className="mt-14 divide-y divide-trait border-y border-trait">
         {lignes.map((l, i) => {
-          const res = suivi?.resultats.find((r) => r.ref === l.ref);
+          const res = suivi?.resultats.find((r) => r.cle === l.cle);
           const enCours = !res && suivi?.courant === i && !fini;
           return (
-            <li key={l.ref} className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center">
+            <li key={l.cle} className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center">
               <div>
-                <p className="text-[15px] font-medium">{l.titre}</p>
-                {res && l.piege ? (
-                  <p className={`monter mt-1 text-sm ${res.reussi ? 'text-succes' : 'text-alerte'}`}>
-                    {res.reussi ? `Non publié : ${l.piege.toLowerCase()}. L’agent a refusé, comme prévu.` : 'Le contrôle n’a pas bloqué ce bien.'}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-texte">{enCours ? 'En cours…' : res ? `${l.ville} · ${PRIX.format(l.prix)}` : 'En attente'}</p>
-                )}
+                <p className="text-[15px] font-medium">{colTitre ? l.valeurs[colTitre] : l.cle}</p>
+                <p className={`mt-1 text-sm ${res?.statut === 'signale' ? 'text-succes' : res?.statut === 'echec' ? 'text-alerte' : 'text-texte'}`}>
+                  {res?.statut === 'signale' ? `Non fait, l’agent a refusé : ${res.raison}` : res?.statut === 'echec' ? res.raison : enCours ? 'En cours…' : res ? 'Fait et relu sur chaque site.' : 'En attente'}
+                </p>
               </div>
-              {!l.piege && (
+              {res?.statut !== 'signale' && (
                 <ul className="flex flex-wrap gap-2">
-                  {w.destinations.map((d) => {
+                  {sites.map((d) => {
                     const e = res?.portails[d];
                     return (
-                      <li
-                        key={d}
-                        className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-500 ${
-                          e === 'ok' ? 'bg-succes-clair text-succes' : e ? 'bg-alerte-clair text-alerte' : 'bg-trait/60 text-discret'
-                        }`}
-                      >
-                        {e === 'ok' ? '✓ ' : ''}{d}{e && e !== 'ok' ? ` : ${ETAT[e]}` : ''}
+                      <li key={d} className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-500 ${e === 'ok' ? 'bg-succes-clair text-succes' : e ? 'bg-alerte-clair text-alerte' : 'bg-trait/60 text-discret'}`}>
+                        {e === 'ok' ? '✓ ' : ''}{d}{e && e !== 'ok' ? ` : ${ETAT[e] ?? e}` : ''}
                       </li>
                     );
                   })}
@@ -174,12 +174,8 @@ export default function Lancer() {
 
       {fini && (
         <div className="monter mt-10 flex flex-wrap items-center justify-between gap-6">
-          <p className="text-[15px] text-texte">
-            {suivi?.resume} {suivi?.cout_usd != null && `Coût : ${suivi.cout_usd.toFixed(2)} $.`}
-          </p>
-          <Link href={`/workflows/${w.id}`} className="bouton rounded-full border border-trait bg-surface px-6 py-3 text-sm font-medium hover:border-encre/30">
-            Retour au workflow
-          </Link>
+          <p className="text-[15px] text-texte">{suivi?.resume} {suivi?.cout_usd != null && `Coût : ${suivi.cout_usd.toFixed(2)} $.`}</p>
+          <Link href={`/workflows/${id}`} className="bouton rounded-full border border-trait bg-surface px-6 py-3 text-sm font-medium hover:border-encre/30">Retour au workflow</Link>
         </div>
       )}
     </section>

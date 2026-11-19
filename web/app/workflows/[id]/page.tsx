@@ -1,23 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { minutes, WORKFLOW_DEMO as w } from '@/lib/demo';
+import { use, useEffect, useState } from 'react';
+import { minutes, type Destination, type WorkflowVue } from '@/lib/types';
 
-// Source à gauche, destinations à droite, reliées par des courbes où passent des impulsions.
-function Trajet() {
-  const ys = [36, 100, 164];
+const champ = 'w-full rounded-xl border border-trait bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+const titre = 'mt-14 text-sm font-medium uppercase tracking-[0.14em] text-discret';
+
+// Source à gauche, sites à droite, reliés par des courbes où passent des impulsions.
+function Trajet({ sites }: { sites: string[] }) {
+  const h = Math.max(200, sites.length * 64 + 8);
+  const ys = sites.map((_, i) => (h / (sites.length + 1)) * (i + 1));
   return (
-    <svg viewBox="0 0 560 200" className="w-full" role="img" aria-label={`${w.source} vers ${w.destinations.join(', ')}`}>
+    <svg viewBox={`0 0 560 ${h}`} className="w-full" role="img" aria-label={`Google Sheet vers ${sites.join(', ')}`}>
       {ys.map((y) => (
         <g key={y}>
-          <path d={`M150 100 C 260 100, 300 ${y}, 400 ${y}`} fill="none" stroke="#e6e6e1" strokeWidth="2" />
-          <path d={`M150 100 C 260 100, 300 ${y}, 400 ${y}`} fill="none" stroke="#0b1d45" strokeWidth="2" className="flux" />
+          <path d={`M150 ${h / 2} C 260 ${h / 2}, 300 ${y}, 400 ${y}`} fill="none" stroke="#e6e6e1" strokeWidth="2" />
+          <path d={`M150 ${h / 2} C 260 ${h / 2}, 300 ${y}, 400 ${y}`} fill="none" stroke="#0b1d45" strokeWidth="2" className="flux" />
         </g>
       ))}
-      <rect x="0" y="78" width="150" height="44" rx="22" fill="#0b1d45" />
-      <text x="75" y="105" textAnchor="middle" fontSize="14" fontWeight="500" fill="#fff">{w.source}</text>
-      {w.destinations.map((d, i) => (
+      <rect x="0" y={h / 2 - 22} width="150" height="44" rx="22" fill="#0b1d45" />
+      <text x="75" y={h / 2 + 5} textAnchor="middle" fontSize="14" fontWeight="500" fill="#fff">Google Sheet</text>
+      {sites.map((d, i) => (
         <g key={d}>
           <rect x="400" y={ys[i] - 20} width="160" height="40" rx="20" fill="#fff" stroke="#e6e6e1" />
           <text x="480" y={ys[i] + 5} textAnchor="middle" fontSize="14" fontWeight="500" fill="#0b1220">{d}</text>
@@ -27,85 +31,164 @@ function Trajet() {
   );
 }
 
-export default function FicheWorkflow() {
-  const [veille, setVeille] = useState(false);
-  const part = Math.round((w.gain.agent_s / w.gain.manuel_s) * 100);
+export default function FicheWorkflow({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [w, setW] = useState<WorkflowVue | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const [sheet, setSheet] = useState('');
+  const [sites, setSites] = useState<Destination[]>([]);
+  const [regle, setRegle] = useState('');
+
+  useEffect(() => {
+    fetch(`/api/workflows/${id}`)
+      .then((r) => r.json())
+      .then((d: WorkflowVue & { erreur?: string }) => {
+        if (d.erreur) return setErreur(d.erreur);
+        setW(d);
+        setSheet(d.sheet_url ?? '');
+        setSites(d.destinations ?? []);
+      });
+  }, [id]);
+
+  // Toute correction regénère la Skill et l'agent H côté serveur.
+  async function enregistrer(corps: object) {
+    setEnvoi(true);
+    const r = await fetch(`/api/workflows/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
+    const d = await r.json();
+    if (d.erreur) setErreur(d.erreur);
+    else {
+      const frais = await (await fetch(`/api/workflows/${id}`)).json();
+      setW(frais);
+      setSites(frais.destinations ?? []);
+      setErreur(null);
+    }
+    setEnvoi(false);
+  }
+
+  if (!w) {
+    return <p className="pt-16 text-[15px] text-discret">{erreur ?? 'Ghost prépare ce workflow : il rédige la procédure et crée l’agent…'}</p>;
+  }
+
+  const regles = w.regles ?? [];
+  const pret = w.statut === 'pret';
+  const manque = [!w.sheet_url && 'le lien du Google Sheet', sites.some((s) => !s.url) && 'l’adresse de chaque site'].filter(Boolean);
 
   return (
     <div className="grid gap-16 pt-10 md:grid-cols-[1.5fr_1fr]">
       <article>
-        <Link href="/observer" className="lien text-sm text-discret">Observation</Link>
-        <h1 className="monter mt-4 text-4xl font-semibold leading-tight tracking-[-0.02em] md:text-5xl">{w.nom}</h1>
+        <Link href="/workflows" className="lien text-sm text-discret">Mes workflows</Link>
+        <h1 className="monter mt-4 text-4xl font-semibold leading-tight tracking-[-0.02em] first-letter:uppercase md:text-5xl">{w.nom}</h1>
         <p className="monter mt-3 text-lg text-texte [animation-delay:80ms]">
-          Repéré {w.occurrences} fois pendant votre observation.
+          Repéré {w.occurrences} fois pendant votre observation.{w.procedure ? ` ${w.procedure.objectif}` : ''}
         </p>
 
-        <div className="monter mt-12 [animation-delay:160ms]">
-          <Trajet />
-        </div>
+        {sites.length > 0 && (
+          <div className="monter mt-12 [animation-delay:160ms]">
+            <Trajet sites={sites.map((s) => s.site)} />
+          </div>
+        )}
 
-        <h2 className="mt-14 text-sm font-medium uppercase tracking-[0.14em] text-discret">Ce que Ghost a compris</h2>
-        <ol className="mt-4 divide-y divide-trait border-y border-trait">
-          {w.etapes.map((e, i) => (
-            <li key={e.texte} className="flex gap-6 py-5">
-              <span className="font-mono text-sm text-discret">{i + 1}</span>
-              <div>
-                <p className="text-sm font-medium text-nuit">{e.site}</p>
-                <p className="mt-1 text-[15px] text-texte">{e.texte}</p>
-              </div>
+        {w.procedure && (
+          <>
+            <h2 className={titre}>Ce que Ghost a compris</h2>
+            <ol className="mt-4 divide-y divide-trait border-y border-trait">
+              {w.procedure.etapes.map((e, i) => (
+                <li key={i} className="flex gap-6 py-5">
+                  <span className="font-mono text-sm text-discret">{i + 1}</span>
+                  <div>
+                    <p className="text-sm font-medium text-nuit">{e.site}</p>
+                    <p className="mt-1 text-[15px] text-texte">{e.texte}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <h2 className={titre}>Ce qui change à chaque fois</h2>
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {w.procedure.champs.map((c) => (
+                <li key={c.colonne} className="rounded-full border border-trait bg-surface px-4 py-2 text-sm text-encre">{c.colonne}</li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <h2 className={titre}>Source des données</h2>
+        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); enregistrer({ sheet_url: sheet }); }}>
+          <label htmlFor="sheet" className="sr-only">Lien du Google Sheet</label>
+          <input id="sheet" value={sheet} onChange={(e) => setSheet(e.target.value)} placeholder="Lien du Google Sheet, partagé en lecture" className={champ} />
+          <button disabled={envoi || sheet === (w.sheet_url ?? '')} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">Enregistrer</button>
+        </form>
+
+        <h2 className={titre}>Sites</h2>
+        <ul className="mt-4 space-y-3">
+          {sites.map((s, i) => (
+            <li key={i} className="grid grid-cols-[9rem_1fr_auto] items-center gap-3">
+              <label htmlFor={`site-${i}`} className="text-sm font-medium text-nuit">{s.site}</label>
+              <input id={`site-${i}`} value={s.url ?? ''} placeholder="Adresse de la page de départ" onChange={(e) => setSites(sites.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} className={champ} />
+              <button aria-label={`Retirer ${s.site}`} onClick={() => setSites(sites.filter((_, j) => j !== i))} className="bouton h-11 w-11 rounded-full text-discret hover:bg-alerte-clair hover:text-alerte">×</button>
             </li>
           ))}
-        </ol>
-
-        <h2 className="mt-14 text-sm font-medium uppercase tracking-[0.14em] text-discret">Ce qui change à chaque fois</h2>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {w.donnees.map((d) => (
-            <li key={d} className="rounded-full border border-trait bg-surface px-4 py-2 text-sm text-encre">{d}</li>
-          ))}
         </ul>
+        <div className="mt-4 flex gap-3">
+          <button onClick={() => setSites([...sites, { site: `Site ${sites.length + 1}`, url: '' }])} className="bouton rounded-full border border-trait bg-surface px-5 py-3 text-sm font-medium">Ajouter un site</button>
+          <button disabled={envoi} onClick={() => enregistrer({ destinations: sites })} className="bouton rounded-full bg-nuit px-5 py-3 text-sm font-medium text-white disabled:opacity-40">Enregistrer les sites</button>
+        </div>
 
-        <h2 className="mt-14 text-sm font-medium uppercase tracking-[0.14em] text-discret">Les règles de l’agent</h2>
+        <h2 className={titre}>Vos règles</h2>
         <ul className="mt-4 space-y-3 text-[15px] text-texte">
-          {w.regles.map((r) => (
-            <li key={r} className="border-l-2 border-nuit/20 pl-4">{r}</li>
+          {regles.map((r) => (
+            <li key={r} className="flex items-start justify-between gap-4 border-l-2 border-nuit/20 pl-4">
+              {r}
+              <button aria-label="Retirer la règle" onClick={() => enregistrer({ regles: regles.filter((x) => x !== r) })} className="bouton shrink-0 rounded-full px-3 text-discret hover:text-alerte">×</button>
+            </li>
           ))}
         </ul>
+        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); if (regle.trim()) enregistrer({ regles: [...regles, regle.trim()] }).then(() => setRegle('')); }}>
+          <label htmlFor="regle" className="sr-only">Nouvelle règle</label>
+          <input id="regle" value={regle} onChange={(e) => setRegle(e.target.value)} placeholder="Ex. : ne rien publier si le prix au m² dépasse 6 000 €" className={champ} />
+          <button disabled={envoi || !regle.trim()} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">Ajouter</button>
+        </form>
+        {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
       </article>
 
       <aside className="md:sticky md:top-10 md:self-start">
         <div className="monter rounded-3xl bg-surface p-8 shadow-[0_1px_0_#e6e6e1,0_20px_50px_-30px_rgb(11_29_69/0.35)] [animation-delay:200ms]">
-          <p className="text-sm text-discret">Temps par bien</p>
+          <p className="text-sm text-discret">Temps par ligne, mesuré</p>
           <div className="mt-5 space-y-4">
-            <div>
-              <div className="flex justify-between text-sm"><span className="text-texte">À la main</span><span className="font-mono">{minutes(w.gain.manuel_s)}</span></div>
-              <div className="mt-2 h-2 rounded-full bg-trait"><div className="remplir h-2 w-full rounded-full bg-encre/25" /></div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm"><span className="font-medium text-nuit">Avec Ghost</span><span className="font-mono text-nuit">{minutes(w.gain.agent_s)}</span></div>
-              <div className="mt-2 h-2 rounded-full bg-trait"><div className="remplir h-2 rounded-full bg-nuit [animation-delay:300ms]" style={{ width: `${part}%` }} /></div>
-            </div>
+            {[['À la main', w.gain.manuel_s, 'bg-encre/25'], ['Avec Ghost', w.gain.agent_s, 'bg-nuit']].map(([nom, s, couleur]) => (
+              <div key={nom as string}>
+                <div className="flex justify-between text-sm"><span className="text-texte">{nom}</span><span className="font-mono">{s ? minutes(s as number) : '—'}</span></div>
+                <div className="mt-2 h-2 rounded-full bg-trait">
+                  {s ? <div className={`remplir h-2 rounded-full ${couleur}`} style={{ width: `${Math.min(100, ((s as number) / Math.max(w.gain.manuel_s ?? 0, w.gain.agent_s ?? 0)) * 100)}%` }} /> : null}
+                </div>
+              </div>
+            ))}
           </div>
+          <p className="mt-4 text-sm text-discret">{w.gain.executions} exécution(s) réussie(s).</p>
 
-          <Link
-            href={`/workflows/${w.id}/lancer`}
-            className="bouton mt-8 block rounded-full bg-nuit py-3.5 text-center text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)]"
-          >
-            Lancer l’agent
-          </Link>
+          {pret ? (
+            <Link href={`/workflows/${w.id}/lancer`} className="bouton mt-8 block rounded-full bg-nuit py-3.5 text-center text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)]">
+              Lancer l’agent
+            </Link>
+          ) : (
+            <p className="mt-8 rounded-2xl bg-nuit-clair p-4 text-sm text-nuit">Pour créer l’agent, il manque {manque.join(' et ') || 'une information'}.</p>
+          )}
 
           <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
             <div>
               <p id="veille" className="text-[15px] font-medium">Surveiller le Sheet</p>
-              <p className="mt-1 text-sm text-texte">Chaque nouvelle ligne est publiée automatiquement.</p>
+              <p className="mt-1 text-sm text-texte">Chaque nouvelle ligne est faite automatiquement.</p>
             </div>
             <button
               role="switch"
-              aria-checked={veille}
+              aria-checked={w.surveillance}
               aria-labelledby="veille"
-              onClick={() => setVeille(!veille)}
-              className={`bouton relative mt-0.5 h-8 w-14 shrink-0 rounded-full ${veille ? 'bg-succes' : 'bg-trait'}`}
+              disabled={!pret || envoi}
+              onClick={() => enregistrer({ surveillance: !w.surveillance })}
+              className={`bouton relative mt-0.5 h-8 w-14 shrink-0 rounded-full disabled:opacity-40 ${w.surveillance ? 'bg-succes' : 'bg-trait'}`}
             >
-              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] duration-300 ${veille ? 'left-7' : 'left-1'}`} />
+              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] duration-300 ${w.surveillance ? 'left-7' : 'left-1'}`} />
             </button>
           </div>
         </div>

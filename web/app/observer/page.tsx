@@ -209,8 +209,7 @@ export default function Observer() {
             <p className="text-sm text-white/70">Workflow repéré</p>
             <p className="mt-2 text-2xl font-semibold tracking-tight">{repere.nom}</p>
             <p className="mt-2 text-[15px] text-white/70">Vous l’avez fait {repere.occurrences} fois. Ghost peut le faire à votre place.</p>
-            {/* shortcut: la fiche affiche le workflow de démonstration ; à remplacer par la procédure générée pour ce workflow. */}
-            <Link href="/workflows/demo" className="bouton mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-medium text-nuit">
+            <Link href={`/workflows/${repere.id}`} className="bouton mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-medium text-nuit">
               Voir ce que Ghost a compris
             </Link>
           </div>
