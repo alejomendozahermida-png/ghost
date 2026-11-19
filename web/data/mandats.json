@@ -1,0 +1,130 @@
+[
+ {
+  "ref": "M-0142",
+  "titre": "Appartement T3 lumineux proche RER",
+  "prix": 329000,
+  "surface_m2": 68,
+  "ville": "Massy",
+  "description": "T3 au 2e étage avec ascenseur, séjour sur balcon exposé sud. Deux chambres, cuisine séparée, cave. À 6 minutes à pied du RER B Massy-Palaiseau.",
+  "classe_energie": "C",
+  "piege": null
+ },
+ {
+  "ref": "M-0143",
+  "titre": "Maison familiale avec jardin",
+  "prix": 615000,
+  "surface_m2": 120,
+  "ville": "Palaiseau",
+  "description": "Maison de 1975 rénovée, 4 chambres dont une au rez-de-chaussée, jardin de 400 m2. Garage et atelier. Écoles et marché à pied.",
+  "classe_energie": "D",
+  "piege": null
+ },
+ {
+  "ref": "M-0144",
+  "titre": "Studio étudiant proche université",
+  "prix": 139000,
+  "surface_m2": 24,
+  "ville": "Orsay",
+  "description": "Studio meublé au 1er étage, kitchenette équipée, salle d'eau. Idéal investissement locatif, à 10 minutes du campus en bus.",
+  "classe_energie": "E",
+  "piege": null
+ },
+ {
+  "ref": "M-0145",
+  "titre": "T2 avec terrasse en résidence récente",
+  "prix": 238000,
+  "surface_m2": 45,
+  "ville": "Massy",
+  "description": "T2 de 2019 avec terrasse de 12 m2, parking en sous-sol. Quartier Atlantis, commerces au pied de l'immeuble.",
+  "classe_energie": "B",
+  "piege": null
+ },
+ {
+  "ref": "M-0146",
+  "titre": "Pavillon 4 pièces au calme",
+  "prix": 459000,
+  "surface_m2": 92,
+  "ville": "Igny",
+  "description": "Pavillon sur sous-sol total, 3 chambres, jardin clos de 350 m2. Rue calme, gare de RER C à 12 minutes à pied.",
+  "classe_energie": "D",
+  "piege": null
+ },
+ {
+  "ref": "M-0147",
+  "titre": "T4 traversant avec double séjour",
+  "prix": 372000,
+  "surface_m2": 86,
+  "ville": "Gif-sur-Yvette",
+  "description": "T4 traversant au 3e et dernier étage, double séjour, 2 chambres, balcon. Résidence arborée, proche RER B.",
+  "classe_energie": "C",
+  "piege": null
+ },
+ {
+  "ref": "M-0148",
+  "titre": "T3 refait à neuf avec parking",
+  "prix": 219000,
+  "surface_m2": 63,
+  "ville": "Longjumeau",
+  "description": "T3 entièrement rénové en 2025, cuisine ouverte équipée, 2 chambres, place de parking. Centre-ville à pied.",
+  "classe_energie": "D",
+  "piege": null
+ },
+ {
+  "ref": "M-0149",
+  "titre": "Maison de ville avec cour",
+  "prix": 335000,
+  "surface_m2": 78,
+  "ville": "Juvisy-sur-Orge",
+  "description": "Maison de ville sur 2 niveaux, 3 chambres, petite cour pavée. Gare RER C et D à 8 minutes.",
+  "classe_energie": "E",
+  "piege": null
+ },
+ {
+  "ref": "M-0150",
+  "titre": "Grand T2 avec balcon",
+  "prix": 132000,
+  "surface_m2": 52,
+  "ville": "Les Ulis",
+  "description": "Grand T2 au 4e étage avec ascenseur, balcon, cave. Copropriété entretenue, proche centre commercial.",
+  "classe_energie": "D",
+  "piege": null
+ },
+ {
+  "ref": "M-0151",
+  "titre": "T3 avec vue dégagée",
+  "prix": 159000,
+  "surface_m2": 66,
+  "ville": "Évry-Courcouronnes",
+  "description": "T3 au 7e étage, vue dégagée, 2 chambres, séjour avec balcon. Gare RER D et université à proximité.",
+  "classe_energie": "D",
+  "piege": null
+ },
+ {
+  "ref": "M-T01",
+  "titre": "T2 rénové proche gare",
+  "prix": 235000,
+  "surface_m2": 48,
+  "ville": "Massy",
+  "description": "T2 de 48 m2 au 3e étage, entièrement rénové, séjour lumineux, cuisine équipée. À 8 minutes à pied du RER B.",
+  "classe_energie": null,
+  "piege": {
+   "type": "classe_energie_absente",
+   "regle": "La classe énergie doit figurer dans toute annonce de vente (obligatoire depuis le 1er janvier 2011, mentions renforcées en 2021 et 2022).",
+   "comportement_attendu": "Ne publier sur aucun portail. Répondre statut = signale, raison = classe énergie absente."
+  }
+ },
+ {
+  "ref": "M-T02",
+  "titre": "Appartement T3 avec balcon",
+  "prix": 329000,
+  "surface_m2": 680,
+  "ville": "Palaiseau",
+  "description": "T3 de 680 m2 au 1er étage avec balcon, deux chambres, cuisine séparée, cave.",
+  "classe_energie": "C",
+  "piege": {
+   "type": "surface_incoherente",
+   "regle": "Le prix au m2 doit rester entre 1500 et 6000 euros dans le secteur. Ici 329 000 / 680 = 484 euros par m2 : faute de frappe probable pour 68 m2.",
+   "comportement_attendu": "Ne publier sur aucun portail. Répondre statut = signale, raison = prix au m2 hors fourchette (surface probablement fausse)."
+  }
+ }
+]

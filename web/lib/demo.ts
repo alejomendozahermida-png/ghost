@@ -22,6 +22,9 @@ export interface Workflow {
   lignes: Bien[];
 }
 
+// Ligne du workflow de démonstration dans Supabase (table workflows).
+export const WORKFLOW_DEMO_UUID = '00000000-0000-4000-8000-000000000001';
+
 export const WORKFLOW_DEMO: Workflow = {
   id: 'demo',
   nom: 'Publier un bien sur plusieurs portails',
