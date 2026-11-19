@@ -1,10 +1,15 @@
 import { avancer } from '@/lib/execution';
+import { appartient } from '@/lib/proprietaire';
+import { NON_CONNECTE, utilisateur } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  const e = await avancer((await params).id);
+  const { id } = await params;
+  const moi = await utilisateur();
+  if (!moi || !(await appartient('executions', id, moi.id))) return NON_CONNECTE();
+  const e = await avancer(id);
   if (!e) return Response.json({ erreur: 'Exécution introuvable.' }, { status: 404 });
   const p = e.verification;
   return Response.json({

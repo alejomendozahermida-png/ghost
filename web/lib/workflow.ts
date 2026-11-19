@@ -32,6 +32,7 @@ export interface Workflow {
   destinations: Destination[] | null;
   regles: string[] | null;
   surveillance: boolean;
+  user_id: string | null;
 }
 
 const SYNTHESE = `Une personne a été observée pendant qu'elle travaillait. Voici les étapes vues à l'écran, dans l'ordre

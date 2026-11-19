@@ -1,6 +1,8 @@
 import { db } from '@/lib/supabase';
 import { lireSheet } from '@/lib/sheet';
 import { lireWorkflow, preparer, type Destination } from '@/lib/workflow';
+import { appartient } from '@/lib/proprietaire';
+import { NON_CONNECTE, utilisateur } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,8 +23,10 @@ async function gain(w: { id: string; observation_id: string | null }) {
 // La fiche : le workflow, préparé à la première lecture (procédure, Skill, agent H), les lignes du Sheet, le gain mesuré.
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const moi = await utilisateur();
+  if (!moi) return NON_CONNECTE();
   let w = await lireWorkflow(id);
-  if (!w) return Response.json({ erreur: 'Workflow introuvable.' }, { status: 404 });
+  if (!w || w.user_id !== moi.id) return Response.json({ erreur: 'Workflow introuvable.' }, { status: 404 });
   if (w.statut !== 'pret') w = await preparer(id).catch(() => w!);
   const sheet = w.sheet_url ? await lireSheet(w.sheet_url).catch(() => null) : null;
   return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: await gain(w) });
@@ -31,6 +35,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 // Ce que l'utilisateur corrige ou ajoute : la source, les adresses des sites, ses règles métier. L'agent est regénéré.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const moi = await utilisateur();
+  if (!moi || !(await appartient('workflows', id, moi.id))) return NON_CONNECTE();
   const corps = (await req.json()) as { sheet_url?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean };
   const champs = Object.fromEntries(Object.entries(corps).filter(([k]) => ['sheet_url', 'destinations', 'regles', 'surveillance'].includes(k)));
   const { error } = await db.from('workflows').update(champs).eq('id', id);

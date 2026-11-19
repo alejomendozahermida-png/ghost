@@ -85,7 +85,7 @@ export async function detecter(observationId: string, finDeTache: boolean): Prom
 
   const { data } = await db
     .from('workflows')
-    .insert({ observation_id: observationId, nom: trouve.nom, occurrences: trouve.occurrences, statut: 'repere' })
+    .insert({ observation_id: observationId, user_id: (await db.from('observations').select('user_id').eq('id', observationId).single()).data?.user_id, nom: trouve.nom, occurrences: trouve.occurrences, statut: 'repere' })
     .select('id, nom, occurrences')
     .single();
   return data;
