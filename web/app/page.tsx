@@ -14,16 +14,16 @@ export default function Accueil() {
         <div className="monter">
           <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-0.03em] text-encre md:text-[60px]">
             Ghost voit ce que vous répétez.
-            <span className="block text-nuit/45">Et le fait à votre place.</span>
+            <span className="block text-nuit/60">Et le fait à votre place.</span>
           </h1>
           <div className="mt-10 flex flex-wrap items-center gap-5">
             <Link
               href="/observer"
-              className="rounded-full bg-nuit px-7 py-3.5 text-[15px] font-medium text-white transition duration-300 ease-[var(--ease-doux)] hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-nuit active:translate-y-0"
+              className="bouton rounded-full bg-nuit px-7 py-3.5 text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)]"
             >
               Commencer l’observation
             </Link>
-            <Link href="/workflows" className="text-[15px] font-medium text-nuit underline-offset-4 hover:underline">
+            <Link href="/workflows" className="lien py-3 text-[15px] font-medium text-nuit">
               Voir mes workflows
             </Link>
           </div>

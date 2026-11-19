@@ -69,7 +69,7 @@ export default function Observer() {
         </ul>
         <button
           onClick={demarrer}
-          className="monter mt-12 rounded-full bg-nuit px-7 py-3.5 text-[15px] font-medium text-white transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-nuit [animation-delay:240ms]"
+          className="bouton monter mt-12 rounded-full bg-nuit px-7 py-3.5 text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)] [animation-delay:240ms]"
         >
           Démarrer l’observation
         </button>
@@ -89,7 +89,7 @@ export default function Observer() {
         <div className="mt-6 flex gap-3">
           <button
             onClick={() => setEtat(etat === 'en_cours' ? 'pause' : 'en_cours')}
-            className="rounded-full border border-trait bg-surface px-5 py-2.5 text-sm font-medium transition hover:border-encre/30"
+            className="bouton rounded-full border border-trait bg-surface px-5 py-3 text-sm font-medium hover:border-encre/30"
           >
             {etat === 'en_cours' ? 'Pause' : 'Reprendre'}
           </button>
@@ -99,7 +99,7 @@ export default function Observer() {
               setSecondes(0);
               setLignes([]);
             }}
-            className="rounded-full px-5 py-2.5 text-sm font-medium text-alerte transition hover:bg-alerte-clair"
+            className="bouton rounded-full px-5 py-3 text-sm font-medium text-alerte hover:bg-alerte-clair"
           >
             Arrêter
           </button>
@@ -114,7 +114,7 @@ export default function Observer() {
             <p className="mt-2 text-[15px] text-white/70">Vous l’avez fait 2 fois. Ghost peut le faire à votre place.</p>
             <Link
               href="/workflows/demo"
-              className="mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-medium text-nuit transition hover:-translate-y-0.5"
+              className="bouton mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-medium text-nuit"
             >
               Voir ce que Ghost a compris
             </Link>

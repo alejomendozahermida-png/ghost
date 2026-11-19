@@ -22,8 +22,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <span className="text-[17px] font-semibold tracking-tight text-nuit">Ghost</span>
           </Link>
           <nav className="flex items-center gap-7 text-sm text-texte">
-            <Link href="/workflows" className="transition-colors hover:text-encre">Mes workflows</Link>
-            <Link href="/acces" className="transition-colors hover:text-encre">Mes accès</Link>
+            <Link href="/workflows" className="lien py-3 hover:text-encre">Mes workflows</Link>
+            <Link href="/acces" className="lien py-3 hover:text-encre">Mes accès</Link>
           </nav>
         </header>
         <main className="mx-auto max-w-5xl px-6 pb-24">{children}</main>

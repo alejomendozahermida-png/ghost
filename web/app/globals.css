@@ -6,7 +6,7 @@
   --color-surface: #ffffff;
   --color-encre: #0b1220;
   --color-texte: #3b4252;
-  --color-discret: #6b7280;
+  --color-discret: #5f6673; /* 5,4:1 sur le fond : lisible même en petit */
   --color-trait: #e6e6e1;
   --color-nuit: #0b1d45;
   --color-nuit-clair: #e8ecf5;
@@ -44,6 +44,19 @@ body {
 .flotter { animation: flotter 5s ease-in-out infinite; }
 .cligner { transform-box: fill-box; transform-origin: center; animation: cligner 4.5s infinite; }
 
+/* Boutons : montent au survol, s'enfoncent à l'appui. Liens : le soulignement se dessine. */
+.bouton {
+  transition: transform 0.3s var(--ease-doux), box-shadow 0.3s var(--ease-doux), background-color 0.2s, border-color 0.2s;
+}
+.bouton:hover { transform: translateY(-2px); }
+.bouton:active { transform: translateY(0) scale(0.98); transition-duration: 0.1s; }
+.bouton:focus-visible, .lien:focus-visible { outline: 2px solid var(--color-nuit); outline-offset: 4px; }
+.lien {
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
+  transition: background-size 0.35s var(--ease-doux), color 0.2s;
+}
+.lien:hover { background-size: 100% 1px; }
+
 /* Point « en cours » */
 @keyframes pulse-doux {
   0% { box-shadow: 0 0 0 0 rgb(180 35 24 / 0.35); }
@@ -53,4 +66,5 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .monter, .flotter, .cligner, .pulse-doux { animation: none; }
+  .bouton:hover, .bouton:active { transform: none; }
 }
