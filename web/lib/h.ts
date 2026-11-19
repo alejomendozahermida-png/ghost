@@ -3,6 +3,12 @@ import 'server-only';
 // API Agents de H (mêmes appels que le SDK Python hai-agents 1.5.1, relevés le 20/11).
 const API = 'https://agp.eu.hcompany.ai/api/v2';
 
+export class HError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 async function h<T>(chemin: string, init: RequestInit = {}): Promise<T> {
   const r = await fetch(API + chemin, {
     ...init,
@@ -14,47 +20,53 @@ async function h<T>(chemin: string, init: RequestInit = {}): Promise<T> {
   return (texte ? JSON.parse(texte) : undefined) as T;
 }
 
-export class HError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
-
 export type StatutH = 'pending' | 'running' | 'idle' | 'completed' | 'failed' | 'timed_out' | 'interrupted' | string;
 
-// Réponse imposée à l'agent : on vérifie ensuite nous-mêmes, sans croire ce qu'il dit.
-const FORMAT_REPONSE = {
-  type: 'object',
-  required: ['statut', 'portails_publies', 'resume'],
-  properties: {
-    statut: { type: 'string', enum: ['publie', 'signale'] },
-    raison: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-    portails_publies: { type: 'array', items: { type: 'string' } },
-    resume: { type: 'string' },
-  },
-};
-
-export interface ReponseAgent {
-  statut: 'publie' | 'signale';
-  raison?: string | null;
-  portails_publies: string[];
-  resume: string;
+interface Session {
+  agent: string; // un agent du catalogue (h/web-surfer-pro) ou un agent créé par Ghost
+  message: string;
+  format: object; // forme imposée à la réponse finale
+  startUrl: string;
+  sites: number; // pour borner étapes et durée
+  attenteCorrection?: boolean;
 }
 
-export function demarrerSession(consigne: string, startUrl: string, nbPortails: number): Promise<{ id: string }> {
+export function demarrerSession(s: Session): Promise<{ id: string }> {
   return h('/sessions', {
     method: 'POST',
     body: JSON.stringify({
-      agent: 'h/web-surfer-pro', // flash reformulait les titres (session 8f893be4)
-      messages: consigne,
-      max_steps: 35 * nbPortails,
-      max_time_s: 150 * nbPortails,
-      idle_timeout_s: 120, // la session attend une éventuelle correction après sa réponse
+      agent: s.agent,
+      messages: s.message,
+      max_steps: 35 * s.sites,
+      max_time_s: 150 * s.sites,
+      idle_timeout_s: s.attenteCorrection ? 120 : 10,
       timezone: 'Europe/Paris',
-      overrides: { 'agent.environments[kind=web].start_url': startUrl, 'agent.answer_format': FORMAT_REPONSE },
+      overrides: { 'agent.environments[kind=web].start_url': s.startUrl, 'agent.answer_format': s.format },
     }),
   });
 }
+
+// Crée ou met à jour (même nom) : une Skill = la méthode écrite, un agent = Skill + navigateur + règles.
+async function creerOuRemplacer(type: 'skills' | 'agents', nom: string, corps: object) {
+  try {
+    return await h(`/${type}`, { method: 'POST', body: JSON.stringify({ name: nom, ...corps }) });
+  } catch (e) {
+    if (!(e instanceof HError) || e.status !== 409) throw e;
+    return h(`/${type}/${nom}`, { method: 'PUT', body: JSON.stringify({ name: nom, ...corps }) });
+  }
+}
+
+export const enregistrerSkill = (nom: string, description: string, body: string) =>
+  creerOuRemplacer('skills', nom, { description, body });
+
+export const enregistrerAgent = (nom: string, description: string, instructions: string, skill: string, startUrl: string, vaultId?: string) =>
+  creerOuRemplacer('agents', nom, {
+    description,
+    instructions,
+    skills: [skill],
+    environments: [{ kind: 'web', id: 'web', host: 'cloud', start_url: startUrl, ...(vaultId ? { vault_id: vaultId } : {}) }],
+    model: 'holo4-27b',
+  });
 
 export const session = (id: string) => h<{ agent_view_url?: string }>(`/sessions/${id}`);
 export const statut = (id: string) => h<{ status: StatutH; error?: string | null }>(`/sessions/${id}/status`);

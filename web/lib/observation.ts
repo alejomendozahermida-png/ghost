@@ -12,6 +12,7 @@ export interface Etape {
   champ: string | null;
   valeur: string | null;
   fin_de_tache: boolean;
+  url: string | null;
 }
 
 interface Lecture extends Omit<Etape, 'id' | 'tache'> {
@@ -21,6 +22,7 @@ interface Lecture extends Omit<Etape, 'id' | 'tache'> {
 const LIRE = `Capture d'écran du poste de travail d'une personne qui travaille. Décris ce qu'elle est en train de faire.
 Rends UNIQUEMENT ce JSON :
 {"site": "nom du site ou du logiciel visible (ex. Portail A, Google Sheet), lu dans la page ou la barre d'adresse",
+ "url": "adresse complète lue dans la barre d'adresse du navigateur, ou null si elle n'est pas visible",
  "ecran": "titre de l'écran ou de la page",
  "action": "navigate|click|type|select|check|read|submit|none",
  "champ": "libellé exact du champ ou du bouton concerné, ou null",
@@ -51,7 +53,7 @@ export async function lireCapture(observationId: string, image: string): Promise
   const tache = derniere ? derniere.tache + (derniere.fin_de_tache ? 1 : 0) : 0;
   const { data } = await db
     .from('etapes')
-    .insert({ observation_id: observationId, tache, site: l.site, ecran: l.ecran, action: l.action, champ: l.champ, valeur: l.valeur, fin_de_tache: !!l.fin_de_tache })
+    .insert({ observation_id: observationId, tache, site: l.site, ecran: l.ecran, action: l.action, champ: l.champ, valeur: l.valeur, url: l.url, fin_de_tache: !!l.fin_de_tache })
     .select('*')
     .single<Etape>();
   return data;

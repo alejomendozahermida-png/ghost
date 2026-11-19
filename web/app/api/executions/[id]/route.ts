@@ -13,7 +13,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     courant: p?.courant ?? 0,
     resultats: p?.resultats ?? [],
     lien_session_h: p?.lien ?? null,
-    corrections: e.corrections,
+    relances: p?.relances ?? 0,
     resume: e.resume,
     duree_s: e.duree_s,
     cout_usd: e.cout_usd,
