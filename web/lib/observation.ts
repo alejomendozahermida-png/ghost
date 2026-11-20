@@ -39,10 +39,11 @@ Rends UNIQUEMENT ce JSON : {"url": "adresse telle qu'affichée, ou null si aucun
 // barre : le haut de la fenêtre, net et agrandi, envoyé seulement quand il a changé ; sinon l'adresse est celle de l'étape d'avant.
 const ETAPES_MIN_TACHE = 3;
 
-export async function lireCapture(observationId: string, image: string, barre?: string | null): Promise<(Etape & { nouvelle_tache: boolean }) | null> {
+// exacte : l'adresse donnée par l'extension Ghost ; quand elle est là, on ne lit plus l'adresse dans l'image.
+export async function lireCapture(observationId: string, image: string, barre?: string | null, exacte?: string | null): Promise<(Etape & { nouvelle_tache: boolean }) | null> {
   const [l, adresse] = await Promise.all([
     holo<Lecture>(LIRE, image),
-    barre ? holo<{ url: string | null }>(ADRESSE, barre).catch(() => null) : Promise.resolve(null),
+    exacte ? Promise.resolve({ url: exacte }) : barre ? holo<{ url: string | null }>(ADRESSE, barre).catch(() => null) : Promise.resolve(null),
   ]);
   if (l.ecran_connexion) return null;
   // L'onglet de Ghost lui-même n'est pas du travail : il fausserait le découpage en tâches.
@@ -56,7 +57,7 @@ export async function lireCapture(observationId: string, image: string, barre?: 
     .limit(1)
     .maybeSingle<Etape>();
   // Un écran qui ne bouge pas : seule son arrivée compte (une navigation). Même écran, même action : rien de nouveau.
-  l.url = adresse?.url?.replace(/\s+/g, '') || (barre ? l.url : derniere?.url ?? l.url);
+  l.url = adresse?.url?.replace(/\s+/g, '') || (barre || exacte ? l.url : derniere?.url ?? l.url);
   if (l.action === 'none') {
     if (derniere?.site === l.site && derniere?.ecran === l.ecran) return null;
     l.action = 'navigate';

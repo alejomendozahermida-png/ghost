@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Ghost — adresses exactes",
+  "version": "1.0.0",
+  "description": "Pendant une observation Ghost, donne l'adresse exacte de l'onglet actif, au lieu de la lire dans l'image.",
+  "permissions": ["tabs", "storage"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://ghost-the-task.vercel.app/*", "http://localhost:3000/*"],
+      "js": ["relais.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": { "128": "icone-128.png" }
+}

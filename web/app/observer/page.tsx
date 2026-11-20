@@ -33,7 +33,7 @@ interface Etape {
 const INTERVALLE_MS = 2000;
 const HAUT_BARRE = 0.11; // part haute de la fenêtre partagée : onglets et barre d'adresse
 const LARGEUR_BARRE = 1600; // l'adresse est à gauche ; au-delà, des icônes
-interface Envoi { image: string; barre: string | null }
+interface Envoi { image: string; barre: string | null; url: string | null }
 const SEUIL_CHANGEMENT = 3; // écart moyen de gris (0-255) entre deux vignettes au-delà duquel l'écran a changé
 
 type Permission = NotificationPermission | 'indisponible';
@@ -77,6 +77,21 @@ export default function Observer() {
   const [teste, setTeste] = useState<ResultatNotification | null>(null);
   const flux = useRef<MediaStream | null>(null);
   const pause = useRef(false);
+  // Extension « Ghost — adresses exactes » : elle donne l'adresse de l'onglet actif, sans la lire dans l'image (fini I/l, O/0).
+  const [compagnon, setCompagnon] = useState(false);
+  const avecCompagnon = useRef(false);
+  const adresse = useRef<string | null>(null);
+
+  useEffect(() => {
+    const recevoir = (e: MessageEvent) => {
+      if (e.source !== window || e.data?.source !== 'ghost-compagnon') return;
+      if (e.data.present) { avecCompagnon.current = true; setCompagnon(true); }
+      if (typeof e.data.url === 'string') adresse.current = e.data.url;
+    };
+    window.addEventListener('message', recevoir);
+    window.postMessage({ source: 'ghost-page', question: 'present' }, location.origin);
+    return () => window.removeEventListener('message', recevoir);
+  }, []);
 
   useEffect(() => {
     setPermission(typeof Notification === 'undefined' ? 'indisponible' : Notification.permission);
@@ -101,6 +116,11 @@ export default function Observer() {
     setTeste(await notifier('Ghost', 'Les notifications fonctionnent. Vous serez prévenu ici.', { tag: `ghost-essai-${Date.now()}` }));
     setPermission(Notification.permission);
   }
+
+  // L'extension n'envoie les adresses que pendant l'observation (pas en pause, pas après).
+  useEffect(() => {
+    window.postMessage({ source: 'ghost-page', observation: etat === 'en_cours' }, location.origin);
+  }, [etat]);
 
   useEffect(() => {
     pause.current = etat === 'pause';
@@ -238,7 +258,7 @@ export default function Observer() {
         const pixelsBarre = vb.getImageData(0, 0, 32, 18).data;
         let ecartBarre = 0;
         if (barrePrecedente) for (let i = 0; i < pixelsBarre.length; i += 4) ecartBarre += Math.abs(pixelsBarre[i] - barrePrecedente[i]);
-        if (!barrePrecedente || ecartBarre / (pixelsBarre.length / 4) > 1) {
+        if (!avecCompagnon.current && (!barrePrecedente || ecartBarre / (pixelsBarre.length / 4) > 1)) {
           const zoom = Math.min(2, 2400 / lb);
           barreCanvas.width = Math.round(lb * zoom);
           barreCanvas.height = Math.round(hb * zoom);
@@ -251,7 +271,7 @@ export default function Observer() {
       }
       v.fin();
       if (!change) return;
-      const envoi = { image: grande.toDataURL('image/jpeg', 0.7), barre };
+      const envoi = { image: grande.toDataURL('image/jpeg', 0.7), barre, url: avecCompagnon.current ? adresse.current : null };
       if (enVol) enAttente = { ...envoi, barre: envoi.barre ?? enAttente?.barre ?? null }; // on garde la plus récente, sans perdre une adresse nouvelle
       else envoyer(envoi);
     });
@@ -281,6 +301,13 @@ export default function Observer() {
           ) : permission === 'denied' ? (
             'Notifications bloquées : autorisez-les à gauche de l’adresse.'
           ) : null}
+        </p>
+        <p className="monter mt-1.5 text-sm text-discret [animation-delay:260ms]">
+          {compagnon ? (
+            'Extension Ghost active · adresses exactes'
+          ) : (
+            <a href="https://github.com/alejomendozahermida-png/ghost/tree/main/extension" target="_blank" rel="noreferrer" className="lien text-nuit">Installer l’extension pour des adresses exactes</a>
+          )}
         </p>
         {teste && (
           <p role="status" className={`mt-2 text-sm ${teste === 'envoyee' ? 'text-discret' : 'text-alerte'}`}>
