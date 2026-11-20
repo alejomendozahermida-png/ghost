@@ -36,10 +36,7 @@ export default function Accueil() {
     <>
       <section className="grid items-center gap-14 pt-12 md:grid-cols-[1.2fr_1fr] md:pt-20">
         <div>
-          <p className="monter inline-flex items-center gap-2 rounded-full border border-trait bg-surface px-3.5 py-1.5 text-[13px] font-medium text-texte">
-            <span aria-hidden="true" className="pulse-doux h-1.5 w-1.5 rounded-full bg-succes" />Agents web propulsés par H Company
-          </p>
-          <h1 className="monter mt-6 text-[44px] font-bold leading-[1.03] tracking-[-0.035em] text-encre [animation-delay:60ms] md:text-[64px]">
+          <h1 className="monter text-[44px] font-bold leading-[1.03] tracking-[-0.035em] text-encre [animation-delay:60ms] md:text-[64px]">
             Ghost voit ce que vous répétez.
             <span className="block text-nuit/60">Et le fait à votre place.</span>
           </h1>
