@@ -13,7 +13,7 @@ export async function GET() {
   if (!moi) return NON_CONNECTE();
   const { data } = await db
     .from('executions')
-    .select('id, workflow_id, statut, origine, resume, verification, workflows(nom)')
+    .select('id, workflow_id, statut, origine, resume, verification, cree_le, duree_s, workflows(nom)')
     .eq('user_id', moi.id)
     .neq('statut', 'en_cours')
     .gte('cree_le', new Date(Date.now() - FENETRE_MS).toISOString())
@@ -28,6 +28,11 @@ export async function GET() {
       const refus = r.find((x) => x.statut !== 'publie')?.raison;
       return {
         id: e.id,
+        nom,
+        statut: e.statut,
+        origine: e.origine,
+        quand: e.cree_le,
+        duree_s: e.duree_s,
         lien: `/workflows/${e.workflow_id}/lancer?execution=${e.id}`,
         titre: `${e.statut === 'completed' ? 'Terminé' : 'Terminé avec des erreurs'} : ${nom}`,
         texte: parties.length ? [`${parties.join(', ')}.`, refus].filter(Boolean).join(' ') : e.resume ?? 'Aucune ligne à faire.',
