@@ -9,7 +9,7 @@ import { Logo } from '@/components/Logo';
 import { boutonPrincipal } from '@/components/PageEntete';
 import { ChargementSimple } from '@/components/Preparation';
 
-const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'verre-champ w-full rounded-xl border border-champ/70 px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
 const LONG = /description|texte|message|commentaire/i;
 
 const ETAPES = ['Demande reçue', 'Agent prêt', 'Agent en cours', 'Vérification', 'Terminé'];
@@ -184,7 +184,7 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
 
         {source === 'formulaire' && (
           <div className="monter mt-10 space-y-8 [animation-delay:160ms]">
-            <div className="rounded-2xl bg-surface p-6 shadow-[0_1px_0_#e6e6e1]">
+            <div className="verre rounded-2xl p-6">
               <label htmlFor="texte" className="text-sm font-semibold text-encre">Remplir à partir d’un texte</label>
               <textarea
                 id="texte"

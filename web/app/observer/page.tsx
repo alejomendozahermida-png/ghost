@@ -315,7 +315,7 @@ export default function Observer() {
 
         {/* Aperçu : une fenêtre de travail que le fantôme parcourt du regard. */}
         <figure aria-hidden="true" className="monter relative hidden sm:block [animation-delay:200ms]">
-          <div className="overflow-hidden rounded-2xl border border-trait bg-surface shadow-[0_40px_80px_-48px_rgb(11_29_69/0.5)]">
+          <div className="overflow-hidden verre rounded-2xl">
             <div className="flex items-center gap-1.5 border-b border-trait px-4 py-3">
               <i className="h-2.5 w-2.5 rounded-full bg-trait" /><i className="h-2.5 w-2.5 rounded-full bg-trait" /><i className="h-2.5 w-2.5 rounded-full bg-trait" />
               <span className="ml-3 h-5 flex-1 rounded-full bg-fond" />
@@ -332,7 +332,7 @@ export default function Observer() {
               <div className="balayer absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent via-nuit/10 to-transparent" />
             </div>
           </div>
-          <div className="absolute -bottom-8 -left-6 rounded-2xl bg-surface p-3 shadow-[0_20px_40px_-24px_rgb(11_29_69/0.55)]">
+          <div className="absolute -bottom-8 -left-6 verre rounded-2xl p-3">
             <Logo taille={72} anime humeur="observe" decoratif />
           </div>
         </figure>
@@ -363,7 +363,7 @@ export default function Observer() {
         {/* Le fantôme au centre : grand, avec un halo qui pulse tant qu'il observe. Remplacé par ce qu'il a compris dès qu'une tâche est repérée. */}
         <aside className="lg:sticky lg:top-10">
           {repere ? (
-            <div role="status" className="monter rounded-3xl bg-nuit p-8 text-white shadow-[0_30px_70px_-30px_rgb(11_29_69/0.75)]">
+            <div role="status" className="verre-nuit monter rounded-3xl p-8">
               <Logo taille={64} anime humeur="joie" couleur="#ffffff" decoratif />
               <p className="mt-5 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
               {repere.resume && <p className="mt-3 text-[15px] leading-relaxed text-white/85">{repere.resume}</p>}
@@ -382,7 +382,7 @@ export default function Observer() {
               </Link>
             </div>
           ) : (
-            <div className="relative grid place-items-center overflow-hidden rounded-[2rem] border border-trait bg-surface/60 py-16 backdrop-blur">
+            <div className="relative grid place-items-center overflow-hidden verre rounded-[2rem] py-16">
               <div aria-hidden="true" className="absolute inset-0 grid place-items-center">
                 {etat === 'en_cours' && [0, 1, 2].map((i) => (
                   <span key={i} className="radar absolute h-56 w-56 rounded-full border-2 border-nuit/25" style={{ animationDelay: `${i * 0.9}s` }} />
@@ -403,7 +403,7 @@ export default function Observer() {
           ) : (
             <ol aria-live="polite" aria-relevant="additions" className="max-h-[62svh] space-y-1 overflow-y-auto pb-10 [mask-image:linear-gradient(to_bottom,black_86%,transparent)]">
               {lignes.map((l, i) => (
-                <li key={l.id} className={`monter grid grid-cols-[7rem_1fr] items-baseline gap-4 rounded-xl px-4 py-3 transition-colors ${i === 0 ? 'bg-surface/80 shadow-[0_1px_0_#e6e6e1] backdrop-blur' : 'opacity-75'}`}>
+                <li key={l.id} className={`monter grid grid-cols-[7rem_1fr] items-baseline gap-4 rounded-xl px-4 py-3 transition-colors ${i === 0 ? 'verre' : 'opacity-75'}`}>
                   <span className="truncate text-sm font-semibold text-nuit">{l.site}</span>
                   <span className="text-[15px] text-encre">{l.texte}</span>
                 </li>

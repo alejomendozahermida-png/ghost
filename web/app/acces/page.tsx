@@ -10,7 +10,7 @@ interface Acces {
   cree_le: string;
 }
 
-const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'verre-champ w-full rounded-xl border border-champ/70 px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
 // Services courants : le bon nom et la bonne page de connexion sont déjà remplis, il reste l'e-mail et le mot de passe.
 const MODELES = [
   { id: 'google', nom: 'Google', detail: 'Gmail, Drive, Sheets', url: 'https://accounts.google.com', categorie: 'Essentiels' },
@@ -101,7 +101,7 @@ export default function MesAcces() {
       <div className="mt-12 max-w-3xl">
         <div>
           {ouvert && (
-            <form onSubmit={ajouter} className="monter mb-12 grid gap-5 rounded-3xl border border-white/60 bg-surface/75 p-8 shadow-[0_1px_0_#e6e6e1,0_30px_60px_-30px_rgb(11_29_69/0.4)] backdrop-blur-xl md:grid-cols-2">
+            <form onSubmit={ajouter} className="monter mb-12 grid gap-5 verre rounded-3xl p-8 md:grid-cols-2">
               <p className="text-lg font-semibold tracking-tight text-encre md:col-span-2">Nouvelle plateforme</p>
               {!choix && (
                 <div className="space-y-5 md:col-span-2">
@@ -115,7 +115,7 @@ export default function MesAcces() {
                         key={m.id}
                         type="button"
                         onClick={() => { setChoix(m); setForm({ ...form, plateforme: m.nom, url: m.url }); }}
-                        className="bouton flex items-center gap-3 rounded-2xl border border-trait bg-surface/80 px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-nuit/30 hover:shadow-[0_10px_24px_-16px_rgb(11_29_69/0.5)]"
+                        className="bouton flex items-center gap-3 rounded-2xl border border-white/80 bg-white/55 px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-nuit/30 hover:shadow-[0_10px_24px_-16px_rgb(11_29_69/0.5)]"
                       >
                         <Icone modele={m} nom={m.nom} />
                         <span className="text-[15px] font-semibold text-encre">{m.nom}</span>
@@ -183,7 +183,7 @@ export default function MesAcces() {
           ) : liste.length === 0 ? (
             <p className="text-[16px] text-texte">Aucun accès pour l’instant. Ajoutez-en un quand un site demande de se connecter.</p>
           ) : (
-            <ul className="divide-y divide-trait border-y border-trait">
+            <ul className="verre divide-y divide-trait/80 rounded-3xl px-6">
               {liste.map((a, i) => (
                 <li key={a.id} className="monter flex flex-wrap items-center gap-5 py-4" style={{ animationDelay: `${i * 60}ms` }}>
                   <Icone modele={modeleDe(a.url)} nom={a.plateforme} />

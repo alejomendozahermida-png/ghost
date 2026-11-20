@@ -6,7 +6,7 @@ import { minutes, type Destination, type WorkflowVue } from '@/lib/types';
 import { Preparation } from '@/components/Preparation';
 import { Declencheurs } from '@/components/Declencheurs';
 
-const champ = 'w-full rounded-xl border border-champ bg-surface px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'verre-champ w-full rounded-xl border border-champ/70 px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
 type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille' | 'planif' | 'lien';
 type Source = 'lecture' | 'sheet' | 'formulaire' | 'aucune';
 const SOURCES: { id: Source; nom: string; texte: string }[] = [
@@ -126,7 +126,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {w.procedure && (
           <>
             <h2 className={titre}>Ce que Ghost a compris</h2>
-            <ol className="mt-4 divide-y divide-trait border-y border-trait">
+            <ol className="verre mt-4 divide-y divide-trait/80 rounded-3xl px-6">
               {w.procedure.etapes.map((e, i) => (
                 <li key={i} className="flex gap-6 py-5">
                   <span className="font-mono text-sm text-discret">{i + 1}</span>
@@ -158,7 +158,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {retour('regles')}
 
         {/* Les réglages restent repliés tant que rien ne manque : la fiche montre d'abord ce que fait l'agent. */}
-        <details open={!pret} className="reglages group mt-14 rounded-3xl border border-trait bg-surface/60 backdrop-blur">
+        <details open={!pret} className="reglages group mt-14 verre rounded-3xl">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-semibold text-encre">
             Données et sites
             <span aria-hidden="true" className="text-discret transition-transform duration-300 group-open:rotate-45">+</span>
@@ -173,7 +173,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
               aria-checked={source === x.id}
               disabled={envoi}
               onClick={() => source !== x.id && enregistrer({ source: x.id }, 'source')}
-              className={`bouton rounded-2xl border px-4 py-3.5 text-left transition-colors disabled:opacity-60 ${source === x.id ? 'border-nuit bg-nuit-clair' : 'border-trait bg-surface hover:border-encre/30'}`}
+              className={`bouton rounded-2xl border px-4 py-3.5 text-left transition-colors disabled:opacity-60 ${source === x.id ? 'border-nuit bg-nuit-clair/80' : 'border-white/80 bg-white/55 hover:border-encre/30'}`}
             >
               <span className="block text-[15px] font-semibold text-encre">{x.nom}</span>
               <span className="mt-0.5 block text-sm text-texte">{x.texte}</span>
@@ -215,7 +215,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
       </article>
 
       <aside className="md:sticky md:top-10 md:self-start">
-        <div className="monter rounded-3xl border border-white/60 bg-surface/75 p-8 backdrop-blur-xl shadow-[0_1px_0_#e6e6e1,0_20px_50px_-30px_rgb(11_29_69/0.35)] [animation-delay:200ms]">
+        <div className="monter verre rounded-3xl p-8 [animation-delay:200ms]">
           <p className="text-sm text-discret">Temps par ligne, mesuré</p>
           <div className="mt-5 space-y-4">
             {[['À la main', w.gain.manuel_s, 'bg-encre/25'], ['Avec Ghost', w.gain.agent_s, 'bg-nuit']].map(([nom, s, couleur]) => (

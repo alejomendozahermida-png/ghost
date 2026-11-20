@@ -78,7 +78,7 @@ export function EcranAgent({ executionId, actif, phrase }: { executionId: string
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-      <figure className="monter overflow-hidden rounded-2xl border border-trait bg-surface shadow-[0_30px_70px_-40px_rgb(11_29_69/0.45)]">
+      <figure className="monter overflow-hidden verre rounded-2xl">
         <div className="flex items-center gap-3 border-b border-trait px-4 py-3">
           <span className="flex gap-1.5" aria-hidden="true">
             <i className="h-2.5 w-2.5 rounded-full bg-trait" /><i className="h-2.5 w-2.5 rounded-full bg-trait" /><i className="h-2.5 w-2.5 rounded-full bg-trait" />

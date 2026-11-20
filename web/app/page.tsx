@@ -79,7 +79,7 @@ export default async function Accueil() {
         <h2 className="mt-3 max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.03em] text-encre md:text-[40px]">Toute tâche qui consiste à lire quelque part et écrire ailleurs.</h2>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {CAS.map((c) => (
-            <article key={c.tache} className={`rounded-3xl border border-trait bg-surface p-7 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-34px_rgb(11_29_69/0.5)] ${c.large ? 'md:col-span-2' : ''}`}>
+            <article key={c.tache} className={`verre rounded-3xl p-7 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-34px_rgb(11_29_69/0.5)] ${c.large ? 'md:col-span-2' : ''}`}>
               <p className="text-sm font-semibold text-nuit">{c.metier}</p>
               <p className="mt-3 text-xl font-bold tracking-tight text-encre">{c.tache}</p>
               <p className="mt-2 text-[15px] leading-relaxed text-texte">{c.detail}</p>
@@ -96,7 +96,7 @@ export default async function Accueil() {
         </div>
         <ul className="grid gap-3 sm:grid-cols-2">
           {DECLENCHEURS.map(([titre, texte]) => (
-            <li key={titre} className="rounded-2xl bg-surface p-6 shadow-[0_1px_0_#e6e6e1]">
+            <li key={titre} className="verre rounded-2xl p-6">
               <p className="text-[16px] font-semibold text-encre">{titre}</p>
               <p className="mt-1.5 text-[15px] leading-relaxed text-texte">{texte}</p>
             </li>
@@ -104,7 +104,7 @@ export default async function Accueil() {
         </ul>
       </section>
 
-      <section className="mt-32 rounded-[2rem] bg-nuit px-8 py-14 text-white md:px-14">
+      <section className="verre-nuit mt-32 rounded-[2rem] px-8 py-14 md:px-14">
         <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-white/60">Confiance</p>
         <h2 className="mt-3 max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.03em] md:text-[40px]">Un agent qui agit à votre place doit mériter votre confiance.</h2>
         <ul className="mt-12 grid gap-8 md:grid-cols-2">

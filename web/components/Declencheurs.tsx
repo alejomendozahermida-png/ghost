@@ -12,7 +12,7 @@ const FREQUENCES: { id: Frequence; nom: string }[] = [
 ];
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
-const champ = 'rounded-xl border border-champ bg-surface px-3 py-2.5 text-[15px] outline-none transition focus:border-nuit';
+const champ = 'verre-champ rounded-xl border border-champ/70 px-3 py-2.5 text-[15px] outline-none transition focus:border-nuit';
 
 function decrire(p: NonNullable<WorkflowVue['planification']>): string {
   if (p.frequence === 'heure') return `Toutes les heures, à :${p.heure.slice(3)}`;

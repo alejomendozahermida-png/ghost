@@ -18,7 +18,7 @@ export function Navigation({ connecte }: { connecte: boolean }) {
 
   if (!connecte) {
     return chemin === '/connexion' ? null : (
-      <Link href="/connexion" className="bouton rounded-full border border-trait bg-surface px-5 py-2.5 text-sm font-medium text-encre">Se connecter</Link>
+      <Link href="/connexion" className="bouton rounded-full bg-nuit px-5 py-2 text-sm font-semibold text-white">Se connecter</Link>
     );
   }
 
@@ -40,12 +40,12 @@ export function Navigation({ connecte }: { connecte: boolean }) {
         aria-expanded={ouvert}
         aria-controls="menu-mobile"
         onClick={() => setOuvert(!ouvert)}
-        className="bouton rounded-full border border-trait bg-surface px-5 py-2.5 font-medium text-encre md:hidden"
+        className="bouton rounded-full border border-white/80 bg-white/60 px-4 py-2 font-medium text-encre md:hidden"
       >
         {ouvert ? 'Fermer' : 'Menu'}
       </button>
       {ouvert && (
-        <div id="menu-mobile" className="monter absolute inset-x-6 top-20 z-20 flex flex-col rounded-2xl bg-surface px-6 py-3 shadow-[0_20px_50px_-20px_rgb(11_29_69/0.35)] md:hidden">
+        <div id="menu-mobile" className="monter verre absolute inset-x-0 top-[4.5rem] z-20 flex flex-col rounded-2xl px-6 py-3 md:hidden">
           {liens}
           {sortie}
         </div>

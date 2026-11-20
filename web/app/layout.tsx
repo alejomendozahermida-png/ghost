@@ -26,13 +26,16 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <a href="#contenu" className="sr-only rounded-full bg-nuit text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-6 focus:top-4 focus:z-30 focus:px-5 focus:py-3">
           Aller au contenu
         </a>
-        <header className="relative mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+        {/* En-tête flottant en verre : il reste en haut et laisse passer la page qui défile dessous. */}
+        <header className="sticky top-3 z-30 mx-auto mt-3 max-w-5xl px-4">
+          <div className="verre relative flex items-center justify-between rounded-full py-2 pl-5 pr-2.5">
           <Link href="/" className="flex items-center gap-2.5 rounded-md focus-visible:outline-2 focus-visible:outline-nuit">
             <Logo taille={30} decoratif />
             <span className="text-[17px] font-semibold tracking-tight text-nuit">Ghost</span>
           </Link>
           <Navigation connecte={!!moi} />
           {moi && <Notifications />}
+          </div>
         </header>
         <main id="contenu" tabIndex={-1} className="mx-auto max-w-5xl px-6 outline-none">{children}</main>
         <PiedDePage />

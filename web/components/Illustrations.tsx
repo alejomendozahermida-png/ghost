@@ -2,7 +2,7 @@
 
 export function FenetreObservee() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-trait bg-surface p-6 shadow-[0_30px_60px_-40px_rgb(11_29_69/0.5)]">
+    <div className="relative overflow-hidden verre rounded-2xl p-6">
       <div className="h-3 w-1/3 rounded bg-encre/10" />
       {[0.9, 0.7, 0.8].map((w, i) => (
         <div key={i} className="mt-4 h-8 rounded-lg border border-trait" style={{ width: `${w * 100}%` }} />
@@ -31,7 +31,7 @@ export function SitesFaits() {
   return (
     <div className="space-y-3">
       {['Portail A', 'Portail B', 'Google Sheet'].map((s, i) => (
-        <div key={s} className="monter flex items-center justify-between rounded-2xl bg-surface px-5 py-4 shadow-[0_1px_0_#e6e6e1]" style={{ animationDelay: `${150 + i * 220}ms` }}>
+        <div key={s} className="monter flex items-center justify-between verre rounded-2xl px-5 py-4" style={{ animationDelay: `${150 + i * 220}ms` }}>
           <span className="text-[15px] font-semibold text-encre">{s}</span>
           <span className="rounded-full bg-succes-clair px-3 py-1 text-sm font-medium text-succes">✓ Fait et relu</span>
         </div>
