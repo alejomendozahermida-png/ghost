@@ -84,6 +84,29 @@ Ce que les mesures ont changé :
 
 Exemple : une agence qui publie 100 biens par mois sur trois portails dépense environ **10 $ de crédits H par mois**, contre 100 × 4 min ≈ 7 heures de saisie.
 
+## Business model et go-to-market
+
+**Pour qui.** Les petites structures de 5 à 50 personnes (agences, cabinets, boutiques) dont les salariés recopient chaque jour des données d'un outil web à l'autre, sans équipe technique ni API pour les relier. C'est la cible retenue pour le pitch ; elle reste une hypothèse à valider avec des pilotes.
+
+**Offres** (page Tarifs de l'application) :
+
+| Offre | Prix | Actions par mois | Agents en parallèle | Au-delà |
+|---|---|---|---|---|
+| Découverte | 0 € | 50 | 1 | - |
+| Pro | 29 € par mois | 400 | 3 | 0,09 € l'action |
+| Équipe | 99 € par mois | 1 500 | 6 | 0,07 € l'action |
+
+**Économie.** Une publication (une ligne sur un site, relecture comprise) coûte environ 0,03 $ de crédits H (voir « Coût de run »). Si une action correspond à une publication, l'offre Pro consomme au plus environ 12 $ de crédits pour 29 € : une marge brute estimée à plus de 50 %. Estimation à confirmer sur des usages réels.
+
+**Go-to-market, en trois étapes.**
+1. **Le cas prouvé : l'immobilier.** Publier un bien sur plusieurs portails prend 4 min 04 à la main contre environ 2 min avec Ghost (essais sur les portails de test). On commence par des pilotes gratuits avec l'offre Découverte.
+2. **Les autres métiers** : support client (ticket vers CRM), e-commerce (fiches produits), administratif (factures). Ils figurent sur la page d'accueil comme cas d'usage ; ils ne sont pas encore mesurés.
+3. **Les équipes** : l'offre Équipe, avec des accès partagés entre collègues.
+
+**Comment on atteint nos premiers clients (pistes à valider).** Des démonstrations courtes (la page d'accueil promet trois minutes pour confier une tâche), le bouche-à-oreille entre agences, et des partenaires proches des petites structures (éditeurs de logiciels métier, experts-comptables).
+
+**Ce qui n'est pas encore validé.** Aucun client réel à ce jour : les mesures viennent des portails de test et les données sont fictives. Le prix, la cible et les canaux sont des hypothèses de départ.
+
 ## Architecture
 
 ```
@@ -160,5 +183,6 @@ Appliquer les migrations de `supabase/` dans l'ordre sur un projet Supabase. Vé
 Ce dépôt reprend des éléments construits avec l'équipe 14 du hackathon :
 - `portails/` : Vladimir Pilioua ;
 - `donnees/` : Henriquet (données fictives et photos).
+- pitch, positionnement, go-to-market et vidéo de présentation : Binta Kande.
 
 La capture d'écran dans le navigateur, la lecture des écrans par Holo et la génération de Skills s'inspirent du projet de référence [show-me-once](https://github.com/h-hackathon/show-me-once-hackathon-h), fourni par les organisateurs. Icônes des services : Simple Icons (CC0).
