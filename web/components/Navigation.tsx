@@ -18,7 +18,10 @@ export function Navigation({ connecte }: { connecte: boolean }) {
 
   if (!connecte) {
     return chemin === '/connexion' ? null : (
-      <Link href="/connexion" className="bouton rounded-full bg-nuit px-5 py-2 text-sm font-semibold text-white">Se connecter</Link>
+      <div className="flex items-center gap-5">
+        <Link href="/tarifs" aria-current={chemin === '/tarifs' ? 'page' : undefined} className={`lien py-2 text-sm hover:text-encre ${chemin === '/tarifs' ? 'text-encre' : 'text-texte'}`}>Tarifs</Link>
+        <Link href="/connexion" className="bouton rounded-full bg-nuit px-5 py-2 text-sm font-semibold text-white">Se connecter</Link>
+      </div>
     );
   }
 

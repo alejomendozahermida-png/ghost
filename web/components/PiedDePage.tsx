@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 
 const COLONNES: [string, [string, string][]][] = [
-  ['Produit', [['Observer', '/observer'], ['Mes workflows', '/workflows'], ['Mes accès', '/acces'], ['Comment ça marche', '/#comment']]],
+  ['Produit', [['Observer', '/observer'], ['Mes workflows', '/workflows'], ['Mes accès', '/acces'], ['Comment ça marche', '/#comment'], ['Tarifs', '/tarifs']]],
   ['Légal', [['Mentions légales', '/mentions-legales'], ['Confidentialité', '/confidentialite'], ['Conditions d’utilisation', '/conditions'], ['Cookies', '/cookies']]],
 ];
 
