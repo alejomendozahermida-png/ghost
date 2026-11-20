@@ -183,9 +183,9 @@ export default function MesAcces() {
           ) : liste.length === 0 ? (
             <p className="text-[16px] text-texte">Aucun accès pour l’instant. Ajoutez-en un quand un site demande de se connecter.</p>
           ) : (
-            <ul className="verre carte-rayon divide-y divide-trait/80 px-6">
+            <ul className="space-y-3">
               {liste.map((a, i) => (
-                <li key={a.id} className="monter flex flex-wrap items-center gap-5 py-4" style={{ animationDelay: `${i * 60}ms` }}>
+                <li key={a.id} className="carte carte-compacte verre monter flex flex-wrap items-center gap-4" style={{ animationDelay: `${i * 60}ms` }}>
                   <Icone modele={modeleDe(a.url)} nom={a.plateforme} />
                   <div className="min-w-0 flex-1">
                     <p className="text-[16px] font-semibold text-encre">{a.plateforme}</p>

@@ -114,6 +114,15 @@ details.reglages[open] > :not(summary) { animation: monter 0.45s cubic-bezier(0.
 .carte, .carte-rayon { --marge: 1.5rem; border-radius: calc(var(--rayon-interieur) + var(--marge)); }
 .carte { padding: var(--marge); }
 @media (min-width: 768px) { .carte { --marge: 2rem; } }
+.carte.carte-compacte { --marge: 1.25rem; }
+
+/* Détail d'un module : replié, il se déplie au survol ou au clavier ; toujours ouvert sur un écran tactile. */
+.detail-survol { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.4s var(--ease-doux), opacity 0.3s; }
+.detail-survol > * { overflow: hidden; }
+.group:hover .detail-survol, .group:focus-within .detail-survol { grid-template-rows: 1fr; opacity: 1; }
+@media (hover: none) { .detail-survol { grid-template-rows: 1fr; opacity: 1; } }
+.carte-lien:focus-visible { outline: none; }
+.group:has(.carte-lien:focus-visible) { outline: 2px solid var(--color-nuit); outline-offset: 3px; }
 
 /* Boutons : montent au survol, s'enfoncent à l'appui. Liens : le soulignement se dessine. */
 .bouton {
