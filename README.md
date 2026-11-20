@@ -5,7 +5,9 @@
 Vous partagez votre fenêtre et travaillez normalement. Ghost repère la tâche que vous refaites, en écrit la méthode, crée un agent H Company, puis la refait à votre place sur vos sites, y compris ceux qui n'ont pas d'API. Chaque résultat est relu sur la page publiée avant d'être marqué comme fait.
 
 - Application en ligne : https://ghost-the-task.vercel.app
-- Projet d'Alejandro Mendoza Hermida, né pendant le hackathon « Build The Future » (Eugenia × H Company, 16 au 20 novembre 2026).
+- Projet de la **Team 14** du hackathon « Build The Future » (Eugenia × H Company, 16 au 20 novembre 2026).
+- Équipe : Alejandro Mendoza Hermida (CTO, application et agents H), Assel (CEO), Binta (CPO), Henriquet Makiadi (CDO, données et Supabase), Omar (CAIO), Vladimir (CAO).
+- Dépôt de l'équipe : https://github.com/kudozinho/Team_14_Eugenia
 
 ## Le problème
 
