@@ -112,7 +112,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         <Link href="/workflows" className="lien text-sm text-discret">Mes workflows</Link>
         <h1 className="monter mt-4 text-4xl font-semibold leading-tight tracking-[-0.02em] first-letter:uppercase md:text-5xl">{w.nom}</h1>
         <p className="monter mt-3 text-lg text-texte [animation-delay:80ms]">
-          Repéré {w.occurrences} fois pendant votre observation.{w.procedure ? ` ${w.procedure.objectif}` : ''}
+          {w.procedure?.objectif ?? `Repéré ${w.occurrences} fois pendant votre observation.`}
         </p>
 
         {sites.length > 0 && (
@@ -138,17 +138,33 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
               ))}
             </ol>
 
-            {w.procedure.champs.length > 0 && <h2 className={titre}>Ce qui change à chaque fois</h2>}
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {/* Une colonne peut remplir plusieurs champs (un par site) : on l'affiche une fois. */}
-              {[...new Set(w.procedure.champs.map((c) => c.colonne))].map((colonne) => (
-                <li key={colonne} className="rounded-full border border-trait bg-surface px-4 py-2 text-sm text-encre">{colonne}</li>
-              ))}
-            </ul>
           </>
         )}
 
-        <h2 className={titre}>Source des données</h2>
+        <h2 className={titre}>Vos règles</h2>
+        <ul className="mt-4 space-y-3 text-[15px] text-texte">
+          {regles.map((r) => (
+            <li key={r} className="flex items-start justify-between gap-4 border-l-2 border-nuit/20 pl-4">
+              {r}
+              <button aria-label="Retirer la règle" disabled={envoi} onClick={() => enregistrer({ regles: regles.filter((x) => x !== r) }, 'regles')} className="bouton -mt-2.5 h-11 w-11 shrink-0 rounded-full text-discret hover:bg-alerte-clair hover:text-alerte disabled:opacity-40">×</button>
+            </li>
+          ))}
+        </ul>
+        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); if (regle.trim()) enregistrer({ regles: [...regles, regle.trim()] }, 'regles').then(() => setRegle('')); }}>
+          <label htmlFor="regle" className="sr-only">Nouvelle règle</label>
+          <input id="regle" value={regle} onChange={(e) => setRegle(e.target.value)} placeholder="Ex. : ne rien publier si le prix au m² dépasse 6 000 €" className={champ} />
+          <button disabled={envoi || !regle.trim()} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'regles' ? 'Enregistrement…' : 'Ajouter'}</button>
+        </form>
+        {retour('regles')}
+
+        {/* Les réglages restent repliés tant que rien ne manque : la fiche montre d'abord ce que fait l'agent. */}
+        <details open={!pret} className="reglages group mt-14 rounded-3xl border border-trait bg-surface/60 backdrop-blur">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-semibold text-encre">
+            Données et sites
+            <span aria-hidden="true" className="text-discret transition-transform duration-300 group-open:rotate-45">+</span>
+          </summary>
+          <div className="px-6 pb-6">
+        <h2 className="text-sm font-medium text-discret">Source des données</h2>
         <div role="radiogroup" aria-label="Source des données" className="mt-4 grid gap-2 sm:grid-cols-2">
           {SOURCES.map((x) => (
             <button
@@ -178,7 +194,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         </form>}
         {retour('sheet')}
 
-        <h2 className={titre}>Sites</h2>
+        <h2 className="mt-10 text-sm font-medium text-discret">Sites</h2>
         <ul className="mt-4 space-y-3">
           {sites.map((s, i) => (
             <li key={i} className="grid grid-cols-[9rem_1fr_auto] items-center gap-3">
@@ -193,26 +209,13 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           <button disabled={envoi} onClick={() => enregistrer({ destinations: sites }, 'sites')} className="bouton rounded-full bg-nuit px-5 py-3 text-sm font-medium text-white disabled:opacity-40">{enCours === 'sites' ? 'Enregistrement…' : 'Enregistrer les sites'}</button>
         </div>
         {retour('sites')}
+          </div>
+        </details>
 
-        <h2 className={titre}>Vos règles</h2>
-        <ul className="mt-4 space-y-3 text-[15px] text-texte">
-          {regles.map((r) => (
-            <li key={r} className="flex items-start justify-between gap-4 border-l-2 border-nuit/20 pl-4">
-              {r}
-              <button aria-label="Retirer la règle" disabled={envoi} onClick={() => enregistrer({ regles: regles.filter((x) => x !== r) }, 'regles')} className="bouton -mt-2.5 h-11 w-11 shrink-0 rounded-full text-discret hover:bg-alerte-clair hover:text-alerte disabled:opacity-40">×</button>
-            </li>
-          ))}
-        </ul>
-        <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); if (regle.trim()) enregistrer({ regles: [...regles, regle.trim()] }, 'regles').then(() => setRegle('')); }}>
-          <label htmlFor="regle" className="sr-only">Nouvelle règle</label>
-          <input id="regle" value={regle} onChange={(e) => setRegle(e.target.value)} placeholder="Ex. : ne rien publier si le prix au m² dépasse 6 000 €" className={champ} />
-          <button disabled={envoi || !regle.trim()} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'regles' ? 'Enregistrement…' : 'Ajouter'}</button>
-        </form>
-        {retour('regles')}
       </article>
 
       <aside className="md:sticky md:top-10 md:self-start">
-        <div className="monter rounded-3xl bg-surface p-8 shadow-[0_1px_0_#e6e6e1,0_20px_50px_-30px_rgb(11_29_69/0.35)] [animation-delay:200ms]">
+        <div className="monter rounded-3xl border border-white/60 bg-surface/75 p-8 backdrop-blur-xl shadow-[0_1px_0_#e6e6e1,0_20px_50px_-30px_rgb(11_29_69/0.35)] [animation-delay:200ms]">
           <p className="text-sm text-discret">Temps par ligne, mesuré</p>
           <div className="mt-5 space-y-4">
             {[['À la main', w.gain.manuel_s, 'bg-encre/25'], ['Avec Ghost', w.gain.agent_s, 'bg-nuit']].map(([nom, s, couleur]) => (
@@ -239,6 +242,11 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             <p className="mt-8 rounded-2xl bg-nuit-clair p-4 text-sm text-nuit">Pour créer l’agent, il manque {manque.join(' et ') || 'une information'}.</p>
           )}
 
+          {pret && <details className="reglages group mt-6 border-t border-trait pt-5">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-encre">
+              Lancement automatique
+              <span aria-hidden="true" className="text-discret transition-transform duration-300 group-open:rotate-45">+</span>
+            </summary>
           {/* La veille n'a de sens que pour une source qui reçoit de nouvelles lignes. */}
           {(source === 'sheet' || source === 'lecture') && <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
             <div>
@@ -257,7 +265,8 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             </button>
           </div>}
           {retour('veille')}
-          {pret && <Declencheurs w={w} envoi={envoi} enregistrer={enregistrer} retour={retour} />}
+          <Declencheurs w={w} envoi={envoi} enregistrer={enregistrer} retour={retour} />
+          </details>}
         </div>
         <div className="mt-6 border-t border-trait pt-6">
           {aEffacer ? (

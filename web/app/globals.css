@@ -61,6 +61,12 @@ body {
 @keyframes onde { from { transform: translate(-50%, -50%) scale(0.4); opacity: 0.7; } to { transform: translate(-50%, -50%) scale(2.6); opacity: 0; } }
 @keyframes balayage { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .fondu { animation: fondu 0.5s var(--ease-doux) both; }
+details.reglages summary::-webkit-details-marker { display: none; }
+details.reglages[open] > :not(summary) { animation: monter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes radar { 0% { transform: scale(0.55); opacity: 0.7; } 100% { transform: scale(1.7); opacity: 0; } }
+.radar { animation: radar 2.7s cubic-bezier(0.2, 0.6, 0.3, 1) infinite both; }
+@keyframes secouer { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.secouer { animation: secouer 0.4s ease-in-out; }
 @keyframes balayer { 0% { transform: translateY(-40%); } 100% { transform: translateY(520%); } }
 .balayer { animation: balayer 3.4s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 .onde { animation: onde 1.1s var(--ease-doux) infinite; }
@@ -99,6 +105,6 @@ body {
 .pulse-doux { animation: pulse-doux 1.6s ease-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .monter, .flotter, .cligner, .pulse-doux, .flux, .remplir, .scruter, .affairer, .besogner, .sautiller, .fondu, .onde, .attente, .balayer { animation: none; }
+  .monter, .flotter, .cligner, .pulse-doux, .flux, .remplir, .scruter, .affairer, .besogner, .sautiller, .fondu, .onde, .attente, .balayer, .secouer, .radar { animation: none; }
   .bouton:hover, .bouton:active { transform: none; }
 }

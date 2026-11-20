@@ -22,15 +22,6 @@ interface Ligne {
 
 const DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-function Chiffre({ valeur, legende }: { valeur: string; legende: string }) {
-  return (
-    <div className="px-6 first:pl-0">
-      <p className="font-mono text-3xl font-medium tracking-tight text-encre">{valeur}</p>
-      <p className="mt-1 text-sm text-texte">{legende}</p>
-    </div>
-  );
-}
-
 export default function MesWorkflows() {
   const [liste, setListe] = useState<Ligne[] | null>(null);
 
@@ -38,15 +29,13 @@ export default function MesWorkflows() {
     fetch('/api/workflows').then((r) => r.json()).then(setListe);
   }, []);
 
-  const executions = liste?.reduce((n, w) => n + w.executions, 0) ?? 0;
-  const reussites = liste?.reduce((n, w) => n + Math.round(((w.reussite ?? 0) * w.executions) / 100), 0) ?? 0;
 
   return (
     <>
       <PageEntete
         surtitre="Vos agents"
         titre="Mes workflows"
-        description="Chaque tâche repérée devient un agent H, avec sa méthode, ses sites et ses déclencheurs."
+        description="Les tâches que vous avez confiées à Ghost."
         action={<Link href="/observer" className={boutonPrincipal}>Observer une nouvelle tâche</Link>}
       />
 
@@ -64,57 +53,30 @@ export default function MesWorkflows() {
         </div>
       ) : (
         <>
-          <section aria-label="En bref" className="monter mt-10 flex flex-wrap divide-x divide-trait [animation-delay:200ms]">
-            <Chiffre valeur={String(liste.length)} legende={liste.length > 1 ? 'workflows' : 'workflow'} />
-            <Chiffre valeur={String(liste.filter((w) => w.surveillance).length)} legende="en veille automatique" />
-            <Chiffre valeur={executions ? `${Math.round((reussites / executions) * 100)} %` : '—'} legende={`de réussite sur ${executions} exécution${executions > 1 ? 's' : ''}`} />
-          </section>
-
-          <ul className="mt-12 space-y-3">
-            {liste.map((w, i) => (
-              <li key={w.id} className="monter" style={{ animationDelay: `${260 + i * 60}ms` }}>
-                <Link
-                  href={`/workflows/${w.id}`}
-                  className="group grid items-center gap-5 rounded-2xl border border-trait bg-surface px-6 py-5 transition duration-300 ease-[var(--ease-doux)] hover:-translate-y-0.5 hover:border-nuit/25 hover:shadow-[0_18px_40px_-28px_rgb(11_29_69/0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nuit md:grid-cols-[auto_1fr_auto_auto]"
-                >
-                  <span className="hidden h-12 w-12 place-items-center rounded-xl bg-nuit-clair md:grid" aria-hidden="true">
-                    <Logo taille={28} decoratif />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[17px] font-semibold tracking-tight text-encre first-letter:uppercase">{w.nom}</p>
-                      {w.en_cours && (
-                        <span className="flex items-center gap-1.5 rounded-full bg-nuit px-2.5 py-0.5 text-xs font-semibold text-white">
-                          <span aria-hidden="true" className="pulse-doux h-1.5 w-1.5 rounded-full bg-white" />En cours
-                        </span>
-                      )}
-                      {w.surveillance && <span className="rounded-full bg-succes-clair px-2.5 py-0.5 text-xs font-semibold text-succes">En veille</span>}
-                      {w.planification && <span className="rounded-full bg-nuit-clair px-2.5 py-0.5 text-xs font-semibold text-nuit">Planifié</span>}
-                      {w.lien && <span className="rounded-full bg-nuit-clair px-2.5 py-0.5 text-xs font-semibold text-nuit">Lien actif</span>}
-                      {w.statut !== 'pret' && <span className="rounded-full bg-nuit-clair px-2.5 py-0.5 text-xs font-semibold text-nuit">À compléter</span>}
-                    </div>
-                    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Sites">
-                      {(w.destinations ?? []).map((d) => (
-                        <li key={d.site} className="rounded-md bg-fond px-2 py-0.5 text-xs font-medium text-texte">{d.site}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <p className="text-sm text-texte md:text-right">
-                    {w.derniere_execution ? <>Dernière exécution<br /><span className="font-medium text-encre">{DATE.format(new Date(w.derniere_execution))}</span></> : 'Jamais lancé'}
+        <ul className="mt-10 divide-y divide-trait border-y border-trait">
+          {liste.map((w, i) => {
+            const modes = [w.en_cours && 'En cours', w.surveillance && 'En veille', w.planification && 'Planifié', w.lien && 'Par lien', w.statut !== 'pret' && 'À compléter'].filter(Boolean) as string[];
+            const sites = (w.destinations ?? []).map((d) => d.site).join(', ');
+            return (
+              <li key={w.id} className="monter flex items-center gap-5 py-5" style={{ animationDelay: `${120 + i * 50}ms` }}>
+                <Link href={`/workflows/${w.id}`} className="group min-w-0 flex-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-nuit">
+                  <p className="truncate text-[17px] font-semibold tracking-tight text-encre transition-colors first-letter:uppercase group-hover:text-nuit">{w.nom}</p>
+                  <p className="mt-1 truncate text-[15px] text-texte">
+                    {[modes.join(' · ') || 'À la main', sites, w.derniere_execution ? `dernière fois le ${DATE.format(new Date(w.derniere_execution))}` : 'jamais lancé'].filter(Boolean).join(' — ')}
                   </p>
-                  <div className="flex items-center gap-4">
-                    {w.reussite !== null && (
-                      <div className="w-24" aria-label={`${w.reussite} % de réussite`}>
-                        <p className="font-mono text-sm text-encre">{w.reussite} %</p>
-                        <div className="mt-1.5 h-1.5 rounded-full bg-trait"><div className="h-1.5 rounded-full bg-nuit" style={{ width: `${w.reussite}%` }} /></div>
-                      </div>
-                    )}
-                    <span aria-hidden="true" className="text-xl text-discret transition-transform duration-300 group-hover:translate-x-1 group-hover:text-nuit">→</span>
-                  </div>
                 </Link>
+                {w.reussite !== null && <p className="hidden shrink-0 font-mono text-sm text-texte sm:block" title="Réussite">{w.reussite} %</p>}
+                {w.en_cours ? (
+                  <Link href={`/workflows/${w.id}/lancer?execution=${w.en_cours}`} className="shrink-0 rounded-full bg-nuit/[0.07] px-4 py-2 text-sm font-semibold text-nuit backdrop-blur">Suivre</Link>
+                ) : w.statut === 'pret' ? (
+                  <Link href={`/workflows/${w.id}/lancer`} className="bouton shrink-0 rounded-full bg-nuit px-4 py-2 text-sm font-semibold text-white">Lancer</Link>
+                ) : (
+                  <Link href={`/workflows/${w.id}`} className="shrink-0 text-sm font-semibold text-nuit">Compléter</Link>
+                )}
               </li>
-            ))}
-          </ul>
+            );
+          })}
+        </ul>
         </>
       )}
     </>

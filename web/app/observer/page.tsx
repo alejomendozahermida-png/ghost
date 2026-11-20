@@ -78,7 +78,6 @@ export default function Observer() {
   const [observation, setObservation] = useState<string | null>(null);
   const [analyse, setAnalyse] = useState<{ enCours: boolean; erreur: string | null }>({ enCours: false, erreur: null });
   const [erreur, setErreur] = useState<string | null>(null);
-  const [illisibles, setIllisibles] = useState(0); // captures que Holo n'a pas pu lire
   const [permission, setPermission] = useState<Permission>('default');
   const [teste, setTeste] = useState<ResultatNotification | null>(null);
   const flux = useRef<MediaStream | null>(null);
@@ -156,7 +155,6 @@ export default function Observer() {
     setSecondes(0);
     setLignes([]);
     setRepere(null);
-    setIllisibles(0);
     setEtat('en_cours');
     observer(id, stream);
   }
@@ -186,7 +184,6 @@ export default function Observer() {
         body: JSON.stringify(envoi),
       }).catch(() => null);
       const d = r?.ok ? ((await r.json()) as { etape: Etape | null; workflow: Repere | null; erreur?: string }) : null;
-      if (!d || d.erreur) setIllisibles((n) => n + 1);
       if (d?.etape) {
         const e = d.etape;
         setLignes((ls) => [{ id: e.id, site: e.site, texte: phrase(e) }, ...ls]);
@@ -345,93 +342,75 @@ export default function Observer() {
 
   return (
     <section className="pt-8">
-      <header className="flex flex-col gap-6 border-b border-trait pb-8 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-5">
-          <Logo taille={64} anime humeur={repere ? 'joie' : etat === 'en_cours' ? 'observe' : 'repos'} decoratif />
-          <div>
-            <p className="flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.16em] text-nuit/70">
-              <span className={`h-2 w-2 rounded-full ${etat === 'en_cours' ? 'pulse-doux bg-alerte' : 'bg-discret'}`} />
-              {etat === 'en_cours' ? 'Observation en cours' : 'En pause'}
-            </p>
-            <p className="mt-1 font-mono text-3xl font-medium tracking-tight text-encre">{duree(secondes)}</p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setEtat(etat === 'en_cours' ? 'pause' : 'en_cours')}
-            className="bouton rounded-full border border-trait bg-surface px-6 py-3 text-sm font-semibold hover:border-encre/30"
-          >
+      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <p className="flex items-center gap-3 font-mono text-2xl font-medium tracking-tight text-encre">
+          <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${etat === 'en_cours' ? 'pulse-doux bg-alerte' : 'bg-discret'}`} />
+          {duree(secondes)}
+          <span className="sr-only">{etat === 'en_cours' ? 'Observation en cours' : 'En pause'}</span>
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setEtat(etat === 'en_cours' ? 'pause' : 'en_cours')} className="bouton rounded-full border border-trait bg-surface/70 px-5 py-2.5 text-sm font-semibold backdrop-blur hover:border-encre/30">
             {etat === 'en_cours' ? 'Pause' : 'Reprendre'}
           </button>
-          <button onClick={arreter} className="bouton rounded-full px-6 py-3 text-sm font-semibold text-alerte hover:bg-alerte-clair">
-            Arrêter
-          </button>
+          <button onClick={arreter} className="bouton rounded-full px-5 py-2.5 text-sm font-semibold text-alerte hover:bg-alerte-clair">Arrêter</button>
           <button onClick={analyserMaintenant} disabled={analyse.enCours || lignes.length === 0} className={boutonPrincipal}>
-            {analyse.enCours ? 'Analyse…' : repere?.resume ? 'Analyser de nouveau' : 'J’ai fini, analyser'}
+            {analyse.enCours ? 'Analyse…' : 'J’ai fini'}
           </button>
         </div>
       </header>
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[1.5fr_1fr]">
-        <div>
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold tracking-tight text-encre">Ce que Ghost voit</h2>
-            <p className="text-sm text-discret">{lignes.length} étape{lignes.length > 1 ? 's' : ''}</p>
-          </div>
-          {illisibles > 0 && (
-            <p className="mt-2 text-sm text-discret">
-              {illisibles} écran{illisibles > 1 ? 's' : ''} n’{illisibles > 1 ? 'ont' : 'a'} pas pu être lu{illisibles > 1 ? 's' : ''}. L’observation continue.
-            </p>
-          )}
-          {lignes.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-champ/60 px-6 py-10 text-center">
-              <p className="text-[15px] text-texte">Ghost attend votre première action.</p>
-              <p className="mt-1 text-sm text-discret">Passez sur l’onglet de votre outil et travaillez normalement.</p>
-            </div>
-          ) : (
-            <ol aria-live="polite" aria-relevant="additions" className="mt-5 max-h-[58svh] space-y-2 overflow-y-auto pb-8 [mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
-              {lignes.map((l, i) => (
-                <li key={l.id} className={`monter grid grid-cols-[7.5rem_1fr] items-baseline gap-4 rounded-xl px-4 py-3 ${i === 0 ? 'bg-surface shadow-[0_1px_0_#e6e6e1]' : ''}`}>
-                  <span className="truncate text-sm font-semibold text-nuit">{l.site}</span>
-                  <span className="text-[15px] text-texte">{l.texte}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-
-        <aside className="lg:sticky lg:top-10 lg:self-start">
+      <div className="mt-10 grid items-start gap-12 lg:grid-cols-[1fr_1.15fr]">
+        {/* Le fantôme au centre : grand, avec un halo qui pulse tant qu'il observe. Remplacé par ce qu'il a compris dès qu'une tâche est repérée. */}
+        <aside className="lg:sticky lg:top-10">
           {repere ? (
             <div role="status" className="monter rounded-3xl bg-nuit p-8 text-white shadow-[0_30px_70px_-30px_rgb(11_29_69/0.75)]">
-              <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-white/70">{repere.resume ? 'Ce que Ghost a compris' : 'Workflow repéré'}</p>
-              <p className="mt-3 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
+              <Logo taille={64} anime humeur="joie" couleur="#ffffff" decoratif />
+              <p className="mt-5 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
               {repere.resume && <p className="mt-3 text-[15px] leading-relaxed text-white/85">{repere.resume}</p>}
               {repere.etapes?.length ? (
                 <ol className="mt-5 space-y-2">
                   {repere.etapes.map((e, i) => (
-                    <li key={i} className="flex gap-3 text-sm text-white/80">
-                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/15 font-mono text-[11px]">{i + 1}</span>
+                    <li key={i} className="flex gap-3 text-[15px] text-white/85">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/15 font-mono text-xs">{i + 1}</span>
                       <span>{e}</span>
                     </li>
                   ))}
                 </ol>
               ) : null}
-              <p className="mt-4 text-[15px] text-white/75">
-                {repere.occurrences > 1 ? `Vous l’avez fait ${repere.occurrences} fois.` : 'Vue une fois.'} Ghost peut le faire à votre place.
-              </p>
               <Link href={`/workflows/${repere.id}`} className="bouton mt-7 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-nuit">
-                Voir ce que Ghost a compris
+                Confier cette tâche à un agent
               </Link>
             </div>
           ) : (
-            <div className="rounded-3xl border border-trait bg-surface p-8">
-              <p className="text-[15px] font-semibold text-encre">Rien de répété pour l’instant</p>
-              <p className="mt-2 text-[15px] leading-relaxed text-texte">Ghost vous préviendra ici, et par une notification, dès qu’une tâche revient deux fois.</p>
-              <p className="mt-4 text-sm text-discret">Vous avez fini et rien n’est apparu ? « J’ai fini, analyser » demande à Ghost de décrire la tâche maintenant.</p>
-              {analyse.erreur && <p role="alert" className="mt-3 text-sm text-alerte">{analyse.erreur}</p>}
+            <div className="relative grid place-items-center overflow-hidden rounded-[2rem] border border-trait bg-surface/60 py-16 backdrop-blur">
+              <div aria-hidden="true" className="absolute inset-0 grid place-items-center">
+                {etat === 'en_cours' && [0, 1, 2].map((i) => (
+                  <span key={i} className="radar absolute h-56 w-56 rounded-full border-2 border-nuit/25" style={{ animationDelay: `${i * 0.9}s` }} />
+                ))}
+              </div>
+              <div className="relative">
+                <Logo taille={180} anime humeur={etat === 'en_cours' ? 'observe' : 'repos'} decoratif />
+              </div>
+              <p className="relative mt-8 text-[17px] font-semibold text-encre">{etat === 'en_cours' ? 'Ghost observe' : 'En pause'}</p>
+              {analyse.erreur && <p role="alert" className="relative mt-3 max-w-xs text-center text-sm text-alerte">{analyse.erreur}</p>}
             </div>
           )}
         </aside>
+
+        <div>
+          {lignes.length === 0 ? (
+            <p className="pt-6 text-[17px] text-texte">Passez sur votre outil et faites votre tâche.</p>
+          ) : (
+            <ol aria-live="polite" aria-relevant="additions" className="max-h-[62svh] space-y-1 overflow-y-auto pb-10 [mask-image:linear-gradient(to_bottom,black_86%,transparent)]">
+              {lignes.map((l, i) => (
+                <li key={l.id} className={`monter grid grid-cols-[7rem_1fr] items-baseline gap-4 rounded-xl px-4 py-3 transition-colors ${i === 0 ? 'bg-surface/80 shadow-[0_1px_0_#e6e6e1] backdrop-blur' : 'opacity-75'}`}>
+                  <span className="truncate text-sm font-semibold text-nuit">{l.site}</span>
+                  <span className="text-[15px] text-encre">{l.texte}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
     </section>
   );
