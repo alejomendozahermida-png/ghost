@@ -10,6 +10,7 @@ interface LogoProps {
   humeur?: Humeur;
   suivreSouris?: boolean; // les yeux suivent le pointeur
   decoratif?: boolean; // à côté du mot « Ghost » ou purement visuel : caché des lecteurs d'écran
+  couleur?: string; // corps et yeux ; blanc sur fond bleu nuit (la visière reste transparente)
 }
 
 const CORPS = 'M12 65 C18 58 24 48 27 37 C31 22 42 6 58 6 C76 6 88 20 88 39 C88 62 72 79 40 83 C43 78 42 70 36 67 C30 64 20 66 13 66.5 Z';
@@ -21,7 +22,7 @@ const CORPS_ANIM: Record<Humeur, string> = { repos: 'flotter', observe: 'flotter
 const YEUX_ANIM: Record<Humeur, string> = { repos: 'cligner', observe: 'scruter', travaille: 'affairer', joie: '', souci: '', discret: '' };
 
 // Le fantôme Ghost : la visière est un trou (le fond passe au travers), seuls les yeux restent pleins.
-export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouris = false, decoratif = false }: LogoProps) {
+export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouris = false, decoratif = false, couleur = '#0b1d45' }: LogoProps) {
   const svg = useRef<SVGSVGElement>(null);
   const regard = useRef<SVGGElement>(null);
 
@@ -58,17 +59,17 @@ export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouri
 
   const yeux =
     humeur === 'discret' ? (
-      <g fill="none" stroke="#0b1d45" strokeWidth="3.2" strokeLinecap="round">
+      <g fill="none" stroke={couleur} strokeWidth="3.2" strokeLinecap="round">
         <path d="M57 38 Q60.75 42.5 64.5 38" />
         <path d="M72 38 Q75.75 42.5 79.5 38" />
       </g>
     ) : humeur === 'joie' ? (
-      <g fill="none" stroke="#0b1d45" strokeWidth="3.2" strokeLinecap="round">
+      <g fill="none" stroke={couleur} strokeWidth="3.2" strokeLinecap="round">
         <path d="M57 40 Q60.75 31 64.5 40" />
         <path d="M72 40 Q75.75 31 79.5 40" />
       </g>
     ) : (
-      <g fill="#0b1d45" transform={humeur === 'souci' ? 'translate(0 4) scale(1 0.8)' : undefined}>
+      <g fill={couleur} transform={humeur === 'souci' ? 'translate(0 4) scale(1 0.8)' : undefined}>
         <rect x="57" y="30" width="7.5" height="14" rx="3.75" />
         <rect x="72" y="30" width="7.5" height="14" rx="3.75" />
       </g>
@@ -84,7 +85,7 @@ export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouri
       className={anime ? CORPS_ANIM[humeur] : undefined}
       overflow="visible"
     >
-      <path fill="#0b1d45" fillRule="evenodd" d={`${CORPS} ${VISIERE}`} />
+      <path fill={couleur} fillRule="evenodd" d={`${CORPS} ${VISIERE}`} />
       <g ref={regard} style={{ willChange: suivreSouris ? 'transform' : undefined }}>
         <g className={anime ? YEUX_ANIM[humeur] : undefined}>{yeux}</g>
       </g>
