@@ -127,6 +127,11 @@ details.reglages[open] > :not(summary) { animation: monter 0.45s cubic-bezier(0.
 .carte-lien:focus-visible { outline: none; }
 .group:has(.carte-lien:focus-visible) { outline: 2px solid var(--color-nuit); outline-offset: 3px; }
 
+/* Zone qui défile dans un bloc de hauteur fixe : une barre fine et discrète. */
+.defile { scrollbar-width: thin; scrollbar-color: rgb(11 29 69 / 0.25) transparent; }
+.defile::-webkit-scrollbar { width: 6px; }
+.defile::-webkit-scrollbar-thumb { background: rgb(11 29 69 / 0.25); border-radius: 9999px; }
+
 /* Boutons : montent au survol, s'enfoncent à l'appui. Liens : le soulignement se dessine. */
 .bouton {
   transition: transform 0.3s var(--ease-doux), box-shadow 0.3s var(--ease-doux), background-color 0.2s, border-color 0.2s;

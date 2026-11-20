@@ -113,14 +113,16 @@ export function EcranAgent({ executionId, actif, phrase }: { executionId: string
         </div>
       </figure>
 
-      <div>
-        <div className="flex items-center gap-4">
+      {/* Sur ordinateur, la colonne prend la hauteur de l'écran de l'agent ; seule la liste des actions défile. */}
+      <div className="flex flex-col lg:relative">
+        <div className="flex flex-col lg:absolute lg:inset-0">
+        <div className="flex shrink-0 items-center gap-4">
           <Logo taille={52} anime humeur={actif ? 'travaille' : 'repos'} decoratif />
           <p className="text-[15px] font-medium text-encre">{phrase}</p>
         </div>
-        <h2 className="mt-8 text-sm font-medium uppercase tracking-[0.14em] text-discret">Ce que fait l’agent</h2>
+        <h2 className="mt-8 shrink-0 text-sm font-medium uppercase tracking-[0.14em] text-discret">Ce que fait l’agent</h2>
         {vue?.actions.length ? (
-          <ol aria-live="polite" aria-relevant="additions" className="mt-3 space-y-1">
+          <ol aria-live="polite" aria-relevant="additions" className="defile mt-3 max-h-80 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 lg:max-h-none">
             {vue.actions.map((a, i) => (
               <li key={`${vue.actions.length - i}-${a.texte}`} className={`monter flex gap-3 rounded-xl px-3 py-2.5 text-[15px] ${i === 0 ? 'bg-nuit-clair text-nuit' : 'text-texte'}`}>
                 <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${i === 0 ? 'pulse-doux bg-nuit' : 'bg-trait'}`} aria-hidden="true" />
@@ -131,6 +133,7 @@ export function EcranAgent({ executionId, actif, phrase }: { executionId: string
         ) : (
           <p className="mt-3 text-[15px] text-discret">Les actions de l’agent s’afficheront ici.</p>
         )}
+        </div>
       </div>
     </div>
   );
