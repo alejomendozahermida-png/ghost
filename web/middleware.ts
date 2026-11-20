@@ -18,7 +18,7 @@ export async function middleware(req: NextRequest) {
   });
   const { data } = await sb.auth.getUser();
   const chemin = req.nextUrl.pathname;
-  if (!data.user && !PUBLIQUES.includes(chemin) && !chemin.startsWith('/api/')) {
+  if (!data.user && !PUBLIQUES.includes(chemin) && !chemin.startsWith('/api/') && !chemin.startsWith('/coller/')) {
     const url = req.nextUrl.clone();
     url.pathname = '/connexion';
     url.searchParams.set('suite', chemin);

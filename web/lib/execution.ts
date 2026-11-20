@@ -151,6 +151,7 @@ export async function nouvellesLignes(workflowId: string, lignes: Ligne[]): Prom
 
 const epeler = (t: string) => t.split(/\s+/).map((m) => [...m].join('-')).join(' / ');
 const A_COURT = /budget|épuis|nombre (maximum )?d'étapes|max.?steps|temps (imparti|écoulé)|time.?out/i; // l'agent s'est arrêté faute de moyens
+const COLLER_MIN = 12; // en dessous (« Massy », « C »), taper ne pose pas de problème
 const estNombre = (v: string) => /^[\d\s.,€]+$/.test(v.trim());
 const norme = (v: string) => v.replace(/\s+/g, ' ').trim();
 
@@ -162,11 +163,19 @@ function egal(lu: string | undefined, attendu: string): boolean {
 }
 
 // La demande vient de notre code, pas du texte généré : celui-ci citait parfois une partie des sites seulement.
-function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: string[]): string {
+// Champs à coller plutôt qu'à taper : les textes assez longs pour que le modèle de l'agent les « corrige »
+// (« Apartment », « commerciaux »), et tout champ déjà faux à un essai précédent. Les nombres et les mots courts restent tapés.
+export function aColler(ligne: Ligne, ecarts: string[]): string[] {
+  return Object.entries(ligne.valeurs)
+    .filter(([c, v]) => !PHOTO.test(c) && v.trim() && !estNombre(v) && (v.trim().length >= COLLER_MIN || ecarts.some((x) => x.includes(`, ${c} :`))))
+    .map(([c]) => c);
+}
+
+function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: string[], coller?: { url: string; colonnes: string[] }): string {
   const valeurs = Object.entries(ligne.valeurs).filter(([c]) => !PHOTO.test(c));
   const vides = valeurs.filter(([, v]) => !v.trim()).map(([c]) => c);
   const textes = valeurs.filter(([, v]) => v && !estNombre(v) && v.length <= 60);
-  const longs = valeurs.filter(([, v]) => v && !estNombre(v) && v.length > 60).map(([c]) => c);
+  const longs = valeurs.filter(([c, v]) => v && !estNombre(v) && v.length > 60 && !coller?.colonnes.includes(c)).map(([c]) => c);
   // Tâche sans données : on la refait telle qu'observée.
   if (!valeurs.length) return [`Fais la tâche « ${tache} » sur ce(s) site(s), en suivant les étapes de ta Skill :`, ...sites.map((s) => `- ${s.site} : ${s.url}`)].join('\n');
   return [
@@ -175,7 +184,10 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     sites.length === 1 ? `Ne fais que ${sites[0].site} : les autres sites sont faits en même temps par d'autres agents. N'en ouvre aucun autre.` : '',
     `Valeurs :`, ...valeurs.map(([c, v]) => `- ${c} : « ${v} »`),
     vides.length ? `Valeurs vides dans cette ligne : ${vides.join(', ')}.` : '',
-    ...textes.map(([c, v]) => `${c} s'épelle lettre par lettre : ${epeler(v)}.`),
+    ...textes.filter(([c]) => !coller?.colonnes.includes(c)).map(([c, v]) => `${c} s'épelle lettre par lettre : ${epeler(v)}.`),
+    coller?.colonnes.length
+      ? `Ne tape pas ${coller.colonnes.join(', ')} : copie-colle-les. Ouvre ${coller.url} dans un nouvel onglet (Ctrl+T, puis l'adresse). Pour chacun de ces champs : dans cet onglet, clique dans sa zone, Ctrl+A puis Ctrl+C ; reviens à l'onglet du formulaire, clique dans le champ, Ctrl+V. Si tu ne peux pas ouvrir d'onglet, tape la valeur.`
+      : '',
     longs.length ? `${longs.join(', ')} : tape le texte mot pour mot, avec la même ponctuation. Ne corrige, n'accorde, ne raccourcis et ne remplace AUCUN mot, même s'il te semble faux (garde « commerces », n'écris pas « commerciaux »). Relis-le avant de valider.` : '',
     // Erreurs vues en vrai : « Apartment » pour « Appartement », « idéal » pour « Idéal ». La relecture après publication les voit, mais trop tard.
     `Garde chaque majuscule, chaque accent et la langue d'origine : ne traduis rien en anglais (« Appartement », jamais « Apartment »).`,
@@ -222,13 +234,20 @@ export async function avancer(id: string): Promise<Execution> {
 
   const w = (await lireWorkflow(data.workflow_id))!;
   const tous = w.destinations ?? [];
+  // La page des valeurs à coller n'existe qu'en ligne (l'agent H ne voit pas localhost).
+  const site = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const collerPour = (rang: number, ecarts: string[]) => {
+    const colonnes = aColler(data.lignes[rang], ecarts);
+    if (!site || !colonnes.length) return undefined;
+    return { colonnes, url: `https://${site}/coller/${id}/${rang}?${colonnes.map((c) => `c=${encodeURIComponent(c)}`).join('&')}` };
+  };
   const p: Progres = data.verification ?? { courant: 0, cout: 0, resultats: [] };
   if (!data.lignes.length) return lireSource(data, w, p);
   const etats: EtatLigne[] = p.lignes ?? data.lignes.map(() => ({}));
   const maj: Partial<Execution> = { resume: null };
   const traitees: { cle_ligne: string; empreinte: string; statut: string }[] = [];
 
-  async function avancerLigne(ligne: Ligne, e: EtatLigne): Promise<void> {
+  async function avancerLigne(ligne: Ligne, e: EtatLigne, rang: number): Promise<void> {
     // Une relance ne refait que les sites en échec la fois d'avant.
     const destinations = ligne.sites?.length ? tous.filter((d) => ligne.sites!.includes(d.site)) : tous;
     const colonnes = Object.keys(ligne.valeurs).filter((c) => !PHOTO.test(c));
@@ -243,7 +262,7 @@ export async function avancer(id: string): Promise<Execution> {
     // shortcut: si un démarrage échoue, les sessions déjà lancées continuent seules chez H ; à arrêter proprement si ça arrive souvent.
     const lancerAgir = async (sites: Destination[], ecarts: string[]) => {
       const lancees = await Promise.all(sites.map((d) =>
-        demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
+        demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, collerPour(rang, ecarts)), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
       const sansPhoto = !colonnePhoto || !ligne.valeurs[colonnePhoto];
       Object.assign(e, { phase: 'agir', sessions: lancees.map((s, i) => ({ site: sites[i].site, id: s.id, photo: sansPhoto })) });
       p.lien ??= (await session(lancees[0].id)).agent_view_url;
@@ -367,7 +386,7 @@ export async function avancer(id: string): Promise<Execution> {
   const ouvertes = () => etats.reduce((n, e) => n + (e.phase === 'agir' ? e.sessions?.length ?? 0 : e.phase === 'relire' ? 1 : 0), 0);
   const etape = async (i: number) => {
     try {
-      await avancerLigne(data.lignes[i], etats[i]);
+      await avancerLigne(data.lignes[i], etats[i], i);
     } catch (err) {
       maj.resume = err instanceof Error ? err.message : String(err); // erreur passagère : on retente au prochain appel
     }
