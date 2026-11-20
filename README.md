@@ -7,6 +7,20 @@ Vous partagez votre fenêtre et travaillez normalement. Ghost repère la tâche 
 - Application en ligne : https://ghost-the-task.vercel.app
 - Projet d'Alejandro Mendoza Hermida, né pendant le hackathon « Build The Future » (Eugenia × H Company, 16 au 20 novembre 2026).
 
+## Le problème
+
+Dans une agence immobilière, chaque nouveau mandat doit être publié à la main sur plusieurs portails d'annonces. Le même bien est ressaisi sur chaque site, avec des formulaires différents (« Prix » ici, « Montant demandé » là), sans API pour le faire automatiquement. L'équipe 14 a mesuré **4 min 04** pour publier un seul bien sur trois portails à la main, à refaire pour chaque bien, chaque semaine.
+
+Le cas n'est pas propre à l'immobilier : support client (recopier un ticket dans le CRM), e-commerce (mettre à jour des fiches produits), administratif (saisir des factures). Partout, une personne **lit quelque part et écrit ailleurs**, sur des outils qui n'ont pas d'API.
+
+**Cible** : les petites structures (agences, cabinets, boutiques) dont les salariés passent des heures par semaine sur des saisies répétitives dans des interfaces web, sans équipe technique pour les automatiser.
+
+**Pourquoi un agent computer-use plutôt qu'une automatisation classique** : les portails n'ont pas d'API, leurs formulaires changent, et décrire la tâche à Make ou n8n demande des compétences que ces utilisateurs n'ont pas. Ghost apprend la tâche **en la regardant faire**, puis un agent H la refait dans un vrai navigateur, comme un humain.
+
+## La solution en une phrase
+
+Vous montrez une tâche une fois ; Ghost la comprend, crée un agent, et la refait à votre place sur vos sites, en vérifiant chaque résultat.
+
 ## Ce que fait Ghost
 
 | Étape | Ce qui se passe |
@@ -22,6 +36,51 @@ Vous partagez votre fenêtre et travaillez normalement. Ghost repère la tâche 
 **Déclencheurs** : à la main, à heure fixe (heure de Paris), à chaque nouvelle ligne du Sheet (veille toutes les 30 s), ou par un lien secret appelé par un autre outil (Google Sheets via Apps Script, Zapier, Airtable…). Plusieurs workflows tournent en même temps ; on peut quitter la page, une notification arrive à la fin.
 
 **Garde-fous** : une valeur vide ou une ligne qui viole une règle de l'utilisateur est refusée par notre code avant tout agent ; l'agent ne paie rien, ne supprime rien et n'écrit à personne ; il complète un enregistrement existant sans jamais créer de doublon.
+
+## Comment tester
+
+Il faut un ordinateur avec **Chrome ou Edge** (le partage d'écran n'existe pas sur téléphone). Comptez une dizaine de minutes.
+
+**Données de démonstration** (fictives) :
+- le tableau des mandats de l'Agence Belvédère : [Google Sheet, lecture par lien](https://docs.google.com/spreadsheets/d/1fjAPbVMct9mhLNKqZiDFUd3XaYImE6jIgVObAfdr8Tk/edit) ;
+- trois portails d'annonces sans API : [Portail A](https://ghost-portail-a.vercel.app/deposer), [Portail B](https://ghost-portail-b.vercel.app/nouvelle), [Portail C](https://ghost-portail-c.vercel.app/publier).
+
+**Le parcours** :
+1. Ouvrez https://ghost-the-task.vercel.app et créez un compte (e-mail et mot de passe d'au moins 8 caractères). Un court accueil explique le fonctionnement et propose d'activer les notifications.
+2. **Observer** : cliquez sur « Démarrer l'observation » et partagez **la fenêtre** de Chrome (pas un seul onglet : la barre d'adresse doit être visible). Dans un autre onglet, recopiez un bien du Sheet sur le Portail A, puis sur le Portail B. Recommencez avec un deuxième bien. Une notification « Ghost a repéré une tâche répétitive » arrive.
+3. **La fiche** : Ghost a écrit la méthode et choisi la source. Ajoutez une règle, par exemple « Ne publie pas une vente sans classe énergie ».
+4. **Lancer** : laissez « Lignes à faire » vide (les nouvelles lignes) ou écrivez « M-0143 et M-0144 ». Suivez l'agent en direct ; chaque ligne finit « Fait et relu » portail par portail. La ligne piège **M-T01** (classe énergie vide) est refusée avant qu'un agent ne démarre.
+5. **Déclencheurs** (sur la fiche) : planifiez une heure, ou créez un lien de déclenchement (le code Apps Script pour Google Sheets est fourni). Vous pouvez quitter la page : l'agent continue, une notification arrive à la fin.
+
+Un workflow naît toujours d'une observation : il n'y en a pas de prêt à l'avance sur un nouveau compte.
+
+## Résultats mesurés
+
+Essais réels sur les portails de test, avec l'Agent API de H Company (durée de bout en bout, relecture comprise).
+
+| Essai | Lignes × sites | Durée | Coût H | Résultat |
+|---|---|---|---|---|
+| Un bien, agent générique | 1 × 3 | 2 min 03 | 0,10 $ | 3/3 publiés et relus |
+| Un bien, avec la vue en direct | 1 × 3 | 1 min 55 | 0,10 $ | 3/3 publiés et relus |
+| Cinq biens lus par l'agent, un par un | 5 × 2 | 7 min 59 | 0,40 $ | 10/10 publiés, mais la ligne piège est passée (corrigé depuis, voir plus bas) |
+| Deux biens, lignes et sites en parallèle | 2 × 2 | 1 min 42 | 0,11 $ | 4/4 publiés et relus |
+| Ligne piège M-T01 | 1 | refusée en quelques secondes | 0 $ | refusée avant tout agent |
+
+Ce que les mesures ont changé :
+- **Parallélisme** : passer d'une ligne après l'autre à toutes les lignes en même temps a divisé la durée par deux environ. Une session H met **31 à 49 s** à remplir et publier un formulaire.
+- **Cas d'échec observés** : file d'attente de 61 à 86 s quand plus de 3 sessions tournent sur le même compte ; une relance après une relecture ratée (+90 s) ; la ligne piège acceptée par deux agents en parallèle, qui jugeaient chacun seul. Le contrôle des valeurs vides et des règles est désormais fait par notre code, une fois, avant tout agent.
+- **Lecture des adresses** : réduite à 1 280 px, une adresse de Google Sheet était lue avec 6 à 10 caractères faux ; sur une capture nette et agrandie de la barre d'adresse, il en reste 1 (I et l identiques dans la police de Chrome), que Ghost corrige en essayant les variantes jusqu'à ce que le Sheet s'ouvre.
+
+## Coût de run
+
+| Poste | Coût |
+|---|---|
+| Une publication (une ligne sur un site, relecture comprise) | environ 0,03 $ de crédits H |
+| Un bien publié sur trois portails | environ 0,08 à 0,10 $ |
+| Lecture de l'écran pendant l'observation (Holo) et raisonnement (Qwen sur Hugging Face) | quelques centimes par observation, non mesurés précisément |
+| Hébergement (Vercel, Supabase) | 0 € à l'échelle du prototype (offres gratuites) |
+
+Exemple : une agence qui publie 100 biens par mois sur trois portails dépense environ **10 $ de crédits H par mois**, contre 100 × 4 min ≈ 7 heures de saisie.
 
 ## Architecture
 
@@ -63,6 +122,29 @@ Appliquer les migrations de `supabase/` dans l'ordre sur un projet Supabase. Vé
 - **Clés** : uniquement dans les variables d'environnement (`.env.local`, Vercel), jamais dans le dépôt. La clé de service Supabase ne quitte pas le serveur.
 - **Données** : chaque route vérifie que l'utilisateur est propriétaire de ce qu'il demande. Les observations ne gardent que des descriptions d'écran.
 - **Liens de déclenchement** : jeton aléatoire de 32 caractères, révocable ; la veille est protégée par un secret stocké dans le Vault Supabase.
+
+## Retours sur l'Agent API de H Company
+
+**Ce qui a bien marché**
+- **Agents, Skills et sessions** : créer un agent par workflow, avec sa Skill (la méthode écrite par Ghost) et sa page de départ, se fait en deux appels. Le même agent sert pour toutes les exécutions.
+- **Réponses structurées** (`answer_format`) : l'agent rend un JSON fiable (publié ou refusé, adresses des pages), sur lequel notre code peut décider sans interpréter du texte.
+- **Coffre-fort** : rattacher le coffre de l'utilisateur à l'agent permet de se connecter à un site sans que le modèle voie le mot de passe.
+- **Événements de session** : les captures d'écran et les actions (clic, saisie, position) permettent de montrer l'agent au travail en direct dans notre propre interface.
+- **Vitesse** : 31 à 49 s pour remplir et publier un formulaire complet, photo comprise.
+
+**Ce qui a cassé ou résisté**
+- **3 sessions simultanées par compte** : au-delà, les sessions attendent leur tour (61 à 86 s observés). C'est la première limite de vitesse dès qu'on parallélise.
+- **Jugement non déterministe** : la même ligne piège a été refusée par un agent, puis acceptée par deux agents lancés en parallèle. Les contrôles métier doivent être faits avant l'agent, pas confiés à lui.
+- **Dépôt de fichier trop tôt** : pendant les premières secondes d'une session, le dépôt d'une photo répond 404 ; il faut réessayer.
+- **Envoi de message** : la réponse a un corps vide, ce que notre premier client prenait pour une erreur (et renvoyait la photo en boucle).
+- **Consigne partielle** : quand le message citait une partie des sites, l'agent n'allait que sur ceux-là ; il faut lui donner explicitement la liste complète, ou un seul site par session.
+- **Lecture d'adresses par Holo** sur une capture réduite : caractères proches confondus (I/l/1, O/0). Résolu par une capture nette de la barre d'adresse.
+- **Connexion Google** : bloquée pour un navigateur automatisé, même avec les bons identifiants.
+
+**Ce qui nous a surpris**
+- L'agent comprend les libellés par leur sens (« Superficie » = « Surface », « Commune » = « Ville ») sans qu'on les lui mappe.
+- Le coût : quelques centimes par publication rend le modèle économique crédible dès maintenant.
+- Les sessions tournent entièrement dans le cloud : l'utilisateur peut fermer son ordinateur, ce qui a rendu possibles la planification et le déclenchement par lien.
 
 ## Limites connues
 
