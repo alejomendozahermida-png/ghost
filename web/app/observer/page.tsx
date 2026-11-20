@@ -296,78 +296,67 @@ export default function Observer() {
     );
   }
 
+  const enCours = etat === 'en_cours';
+  // Même grammaire que l'écran de départ : une colonne centrée, le fantôme au milieu, une barre d'outils en verre.
   return (
-    <section className="pt-8">
-      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <p className="flex items-center gap-3 font-mono text-2xl font-medium tracking-tight text-encre">
-          <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${etat === 'en_cours' ? 'pulse-doux bg-alerte' : 'bg-discret'}`} />
-          {duree(secondes)}
-          <span className="sr-only">{etat === 'en_cours' ? 'Observation en cours' : 'En pause'}</span>
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setEtat(etat === 'en_cours' ? 'pause' : 'en_cours')} className="bouton rounded-full border border-trait bg-surface/70 px-5 py-2.5 text-sm font-semibold backdrop-blur hover:border-encre/30">
-            {etat === 'en_cours' ? 'Pause' : 'Reprendre'}
-          </button>
-          <button onClick={arreter} className="bouton rounded-full px-5 py-2.5 text-sm font-semibold text-alerte hover:bg-alerte-clair">Arrêter</button>
-          <button onClick={analyserMaintenant} disabled={analyse.enCours || lignes.length === 0} className={boutonPrincipal}>
-            {analyse.enCours ? 'Analyse…' : 'J’ai fini'}
-          </button>
-        </div>
-      </header>
-
-      <div className="mt-10 grid items-start gap-12 lg:grid-cols-[1fr_1.15fr]">
-        {/* Le fantôme au centre : grand, avec un halo qui pulse tant qu'il observe. Remplacé par ce qu'il a compris dès qu'une tâche est repérée. */}
-        <aside className="lg:sticky lg:top-10">
-          {repere ? (
-            <div role="status" className="carte verre-nuit monter">
-              <Logo taille={64} anime humeur="joie" couleur="#ffffff" decoratif />
-              <p className="mt-5 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
-              {repere.resume && <p className="mt-3 text-[15px] leading-relaxed text-white/85">{repere.resume}</p>}
-              {repere.etapes?.length ? (
-                <ol className="mt-5 space-y-2">
-                  {repere.etapes.map((e, i) => (
-                    <li key={i} className="flex gap-3 text-[15px] text-white/85">
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/15 font-mono text-xs">{i + 1}</span>
-                      <span>{e}</span>
-                    </li>
-                  ))}
-                </ol>
-              ) : null}
-              <Link href={`/workflows/${repere.id}`} className="bouton mt-7 inline-flex rounded-xl bg-white px-6 py-3 text-sm font-semibold text-nuit">
-                Confier cette tâche à un agent
-              </Link>
-            </div>
-          ) : (
-            <div className="relative grid place-items-center overflow-hidden verre carte-rayon py-16">
-              <div aria-hidden="true" className="absolute inset-0 grid place-items-center">
-                {etat === 'en_cours' && [0, 1, 2].map((i) => (
-                  <span key={i} className="radar absolute h-56 w-56 rounded-full border-2 border-nuit/25" style={{ animationDelay: `${i * 0.9}s` }} />
-                ))}
-              </div>
-              <div className="relative">
-                <Logo taille={180} anime humeur={etat === 'en_cours' ? 'observe' : 'repos'} decoratif />
-              </div>
-              <p className="relative mt-8 text-[17px] font-semibold text-encre">{etat === 'en_cours' ? 'Ghost observe' : 'En pause'}</p>
-              {analyse.erreur && <p role="alert" className="relative mt-3 max-w-xs text-center text-sm text-alerte">{analyse.erreur}</p>}
-            </div>
-          )}
-        </aside>
-
-        <div>
-          {lignes.length === 0 ? (
-            <p className="pt-6 text-[17px] text-texte">Passez sur votre outil et faites votre tâche.</p>
-          ) : (
-            <ol aria-live="polite" aria-relevant="additions" className="max-h-[62svh] space-y-1 overflow-y-auto pb-10 [mask-image:linear-gradient(to_bottom,black_86%,transparent)]">
-              {lignes.map((l, i) => (
-                <li key={l.id} className={`monter grid grid-cols-[7rem_1fr] items-baseline gap-4 rounded-xl px-4 py-3 transition-colors ${i === 0 ? 'verre' : 'opacity-75'}`}>
-                  <span className="truncate text-sm font-semibold text-nuit">{l.site}</span>
-                  <span className="text-[15px] text-encre">{l.texte}</span>
+    <section className="mx-auto flex max-w-xl flex-col items-center pb-10 pt-8 text-center lg:min-h-[calc(100svh-10rem)] lg:justify-center">
+      {repere ? (
+        <div role="status" className="carte verre-nuit monter w-full text-left">
+          <Logo taille={56} anime humeur="joie" couleur="#ffffff" decoratif />
+          <p className="mt-5 text-[13px] font-medium text-white/70">Tâche repérée</p>
+          <p className="mt-1 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
+          {repere.resume && <p className="mt-3 text-[15px] leading-relaxed text-white/80">{repere.resume}</p>}
+          {repere.etapes?.length ? (
+            <ol className="mt-5 space-y-2">
+              {repere.etapes.map((e, i) => (
+                <li key={i} className="flex gap-3 text-[15px] text-white/85">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/15 font-mono text-xs">{i + 1}</span>
+                  <span>{e}</span>
                 </li>
               ))}
             </ol>
-          )}
+          ) : null}
+          <Link href={`/workflows/${repere.id}`} className="bouton mt-7 block rounded-xl bg-white py-3.5 text-center text-[15px] font-semibold text-nuit">
+            Confier cette tâche à un agent
+          </Link>
         </div>
+      ) : (
+        <>
+          <div className="monter relative grid h-72 w-72 place-items-center">
+            <div aria-hidden="true" className="absolute inset-0 grid place-items-center">
+              {enCours && [0, 1, 2].map((i) => (
+                <span key={i} className="radar absolute h-48 w-48 rounded-full border border-nuit/20 bg-nuit/[0.03]" style={{ animationDelay: `${i * 0.9}s` }} />
+              ))}
+            </div>
+            <div className={`relative transition-opacity duration-500 ${enCours ? '' : 'opacity-50'}`}>
+              <Logo taille={150} anime humeur={enCours ? 'observe' : 'discret'} suivreSouris={enCours} decoratif />
+            </div>
+          </div>
+          <p className="monter font-mono text-[40px] font-medium leading-none tracking-tight text-encre [animation-delay:60ms]">{duree(secondes)}</p>
+          <p className="monter mt-3 text-[17px] text-texte [animation-delay:120ms]">
+            {enCours ? (lignes.length ? 'Ghost observe. Continuez votre tâche.' : 'Ghost observe. Passez sur votre outil.') : 'En pause. Ghost ne regarde plus.'}
+          </p>
+          {/* Ce que Ghost vient de voir : une seule ligne, remplacée en fondu à chaque nouvel écran. */}
+          <p aria-live="polite" className="mt-6 h-6 max-w-full truncate text-sm text-discret">
+            {lignes[0] && <span key={lignes[0].id} className="fondu"><b className="font-semibold text-nuit">{lignes[0].site}</b> · {lignes[0].texte}</span>}
+          </p>
+          {analyse.erreur && <p role="alert" className="mt-3 text-sm text-alerte">{analyse.erreur}</p>}
+        </>
+      )}
+
+      {/* Barre d'outils : pilule en verre, boutons pilules à marge égale (arrondis concentriques). */}
+      <div className="verre monter mt-10 flex items-center gap-1 rounded-full p-1.5 [animation-delay:180ms]">
+        <button onClick={() => setEtat(enCours ? 'pause' : 'en_cours')} className="bouton rounded-full px-5 py-2.5 text-sm font-semibold text-encre hover:bg-white/70">
+          {enCours ? 'Pause' : 'Reprendre'}
+        </button>
+        <button onClick={arreter} className="bouton rounded-full px-5 py-2.5 text-sm font-semibold text-alerte hover:bg-alerte-clair">Arrêter</button>
+        {!repere && (
+          <button onClick={analyserMaintenant} disabled={analyse.enCours || lignes.length === 0} className="bouton rounded-full bg-nuit px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+            {analyse.enCours ? 'Analyse…' : 'J’ai fini'}
+          </button>
+        )}
       </div>
+      <p className="sr-only" role="status">{enCours ? 'Observation en cours' : 'Observation en pause'}</p>
     </section>
   );
 }
