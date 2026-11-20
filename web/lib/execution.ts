@@ -55,6 +55,7 @@ export interface Progres {
   consigne?: string; // source lue par l'agent : quelles lignes prendre
   lien?: string;
   cout: number;
+  comptees?: string[]; // sessions déjà comptées dans le coût (une session groupée sert plusieurs lignes)
   resultats: ResultatLigne[];
 }
 
@@ -79,14 +80,16 @@ const FORMAT_AGIR = {
   properties: {
     statut: { type: 'string', enum: ['publie', 'signale'] },
     raison: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-    publications: { type: 'array', items: { type: 'object', required: ['site', 'url'], properties: { site: { type: 'string' }, url: { type: 'string' } } } },
+    publications: { type: 'array', items: { type: 'object', required: ['site', 'url'], properties: { site: { type: 'string' }, url: { type: 'string' }, cle: { type: 'string' } } } },
+    refus: { type: 'array', items: { type: 'object', required: ['cle', 'raison'], properties: { cle: { type: 'string' }, raison: { type: 'string' } } } },
     resume: { type: 'string' },
   },
 };
 interface ReponseAgir {
   statut: 'publie' | 'signale';
   raison?: string | null;
-  publications: { site: string; url: string }[];
+  publications: { site: string; url: string; cle?: string }[];
+  refus?: { cle: string; raison: string }[]; // mode groupé : les lignes refusées ; les autres sont faites
 }
 
 const FORMAT_LIRE = {
@@ -154,6 +157,8 @@ export async function nouvellesLignes(workflowId: string, lignes: Ligne[]): Prom
 }
 
 const A_COURT = /budget|épuis|nombre (maximum )?d'étapes|max.?steps|temps (imparti|écoulé)|time.?out/i; // l'agent s'est arrêté faute de moyens
+const PLACES_H = 3; // sessions H simultanées par compte
+const GROUPE_MAX = 5; // lignes au plus par agent groupé (au-delà, le budget d'étapes et de temps devient risqué)
 const COLLER_MIN = 12; // en dessous (« Massy », « C »), taper ne pose pas de problème
 const estNombre = (v: string) => /^[\d\s.,€]+$/.test(v.trim());
 const norme = (v: string) => v.replace(/\s+/g, ' ').trim();
@@ -194,6 +199,25 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     `Avant de cliquer sur le bouton qui publie, relis une seule fois les champs que tu as tapés${coller?.colonnes.length ? ' (pas ceux collés : ils sont exacts)' : ''}. Si l'un diffère des valeurs ci-dessus, vide-le (Ctrl+A puis Suppr) et retape la valeur complète, une seule fois. Puis publie : Ghost relira la page publiée.`,
     ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : '',
   ].filter(Boolean).join('\n');
+}
+
+// Mode rapide : un agent enchaîne plusieurs lignes sur un même site. Une session H met ~25 s à démarrer :
+// la payer une fois par groupe au lieu d'une fois par ligne, dans la limite des 3 sessions simultanées de H.
+function messageGroupe(membres: { ligne: Ligne; ecarts: string[]; coller?: { url: string; colonnes: string[] } }[], d: Destination, tache: string): string {
+  return [
+    `Fais la tâche « ${tache} » sur ${d.site} pour chacune des ${membres.length} lignes ci-dessous, l'une après l'autre. Après chaque publication, retourne sur ${d.url} pour la ligne suivante. Ne fais que ce site.`,
+    ...membres.flatMap(({ ligne, ecarts, coller }) => [
+      '',
+      `Ligne « ${ligne.cle} » :`,
+      ...Object.entries(ligne.valeurs).filter(([c]) => !PHOTO.test(c)).map(([c, v]) => `- ${c} : « ${v} »`),
+      coller?.colonnes.length ? `Pour cette ligne, ne tape pas ${coller.colonnes.join(', ')} : copie-colle-les depuis ${coller.url} (nouvel onglet, Ctrl+A, Ctrl+C, puis Ctrl+V dans le champ).` : null,
+      ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : null,
+    ]),
+    '',
+    `Recopie chaque valeur à l'identique : mêmes mots, majuscules, accents et ponctuation, sans traduire en anglais, corriger ni raccourcir (« Appartement », jamais « Apartment »).`,
+    `Avant chaque publication, relis une seule fois les champs tapés ; si l'un diffère, vide-le et retape-le une fois.`,
+    `Si une ligne ne peut pas être faite, mets { cle, raison } dans refus et passe à la suivante. Dans publications, mets pour chaque ligne publiée { cle, site, url } (url = la page publiée).`,
+  ].filter((x): x is string => x !== null).join('\n');
 }
 
 function messageRelire(publications: { site: string; url: string }[], colonnes: string[]): string {
@@ -244,6 +268,9 @@ export async function avancer(id: string): Promise<Execution> {
   };
   const p: Progres = data.verification ?? { courant: 0, cout: 0, resultats: [] };
   if (!data.lignes.length) return lireSource(data, w, p);
+  const groupe = w.modele === 'rapide'; // seul le mode rapide groupe les lignes : le mode précis garde un agent par ligne et par site
+  const lignesData = data.lignes;
+  const attente: { rang: number; e: EtatLigne; d: Destination; ecarts: string[]; coller?: { url: string; colonnes: string[] } }[] = [];
   const etats: EtatLigne[] = p.lignes ?? data.lignes.map(() => ({}));
   const maj: Partial<Execution> = { resume: null };
   const traitees: { cle_ligne: string; empreinte: string; statut: string }[] = [];
@@ -263,6 +290,13 @@ export async function avancer(id: string): Promise<Execution> {
     // shortcut: si un démarrage échoue, les sessions déjà lancées continuent seules chez H ; à arrêter proprement si ça arrive souvent.
     const lancerAgir = async (sites: Destination[], ecarts: string[]) => {
       const coller = await collerPour(rang, ecarts);
+      if (groupe) {
+        // Démarré plus bas, avec les autres lignes du même site (voir demarrerGroupes).
+        const sansPhotoG = !colonnePhoto || !ligne.valeurs[colonnePhoto];
+        Object.assign(e, { phase: 'agir', sessions: sites.map((d) => ({ site: d.site, id: '', photo: sansPhotoG, debut: Date.now() })) });
+        sites.forEach((d) => attente.push({ rang, e, d, ecarts, coller }));
+        return;
+      }
       const lancees = await Promise.all(sites.map((d) =>
         demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, coller), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
       const sansPhoto = !colonnePhoto || !ligne.valeurs[colonnePhoto];
@@ -348,7 +382,9 @@ export async function avancer(id: string): Promise<Execution> {
       // Le navigateur de la session démarre en quelques secondes : avant, H répond 404. On réessaie au prochain appel.
       const depose = await deposerFichier(s.id, f!.nom, f!.base64).catch(() => null);
       if (depose) {
-        await envoyer(s.id, `Quand un site demande une photo, envoie exactement le fichier ${depose.path}. N'en crée et n'en choisis aucune autre.`);
+        await envoyer(s.id, groupe
+          ? `Pour la ligne « ${ligne.cle} », quand le site demande une photo, envoie exactement le fichier ${depose.path}.`
+          : `Quand un site demande une photo, envoie exactement le fichier ${depose.path}. N'en crée et n'en choisis aucune autre.`);
         s.photo = true;
       }
     }
@@ -356,9 +392,16 @@ export async function avancer(id: string): Promise<Execution> {
     if (sessions.some((_, i) => !FINIS.includes(sts[i].status))) return;
 
     const chs = await Promise.all(sessions.map((s) => changements(s.id)));
-    p.cout += chs.reduce((n, ch) => n + (ch.metrics?.total_cost ?? 0), 0);
+    p.comptees ??= [];
+    sessions.forEach((s, i) => { if (!p.comptees!.includes(s.id)) { p.comptees!.push(s.id); p.cout += chs[i].metrics?.total_cost ?? 0; } });
     e.mesures = [...(e.mesures ?? []), ...sessions.map((s, i) => ({ site: s.site, etapes: chs[i].metrics?.steps ?? 0, duree_s: s.debut ? Math.round((Date.now() - s.debut) / 1000) : 0, cout: chs[i].metrics?.total_cost ?? 0 }))];
-    const reps = chs.map((ch) => ch.answer as ReponseAgir | undefined);
+    const reps = chs.map((ch) => {
+      const r = ch.answer as ReponseAgir | undefined;
+      if (!r || !groupe) return r;
+      // Session groupée : ne garder que ce qui concerne cette ligne.
+      const refus = r.refus?.find((x) => x.cle === ligne.cle);
+      return { ...r, statut: refus ? 'signale' : 'publie', raison: refus?.raison ?? null, publications: r.publications.filter((x) => x.cle === ligne.cle) } as ReponseAgir;
+    });
     // Un agent à court d'étapes ou de temps n'a rien refusé : c'est un échec, relançable, pas un refus voulu.
     const signal = reps.find((r) => r?.statut === 'signale' && !A_COURT.test(r.raison ?? ''));
     if (signal) return terminer({ cle: ligne.cle, statut: 'signale', portails: {}, raison: signal.raison ?? undefined });
@@ -386,7 +429,7 @@ export async function avancer(id: string): Promise<Execution> {
     terminer({ cle: ligne.cle, statut: 'echec', portails: Object.fromEntries(destinations.map((d) => [d.site, 'absent'])), raison: sts.find((s) => s.error)?.error ?? 'Aucune publication.' });
   }
 
-  const ouvertes = () => etats.reduce((n, e) => n + (e.phase === 'agir' ? e.sessions?.length ?? 0 : e.phase === 'relire' ? 1 : 0), 0);
+  const ouvertes = () => new Set(etats.flatMap((e) => (e.phase === 'agir' ? (e.sessions ?? []).map((s) => s.id) : e.phase === 'relire' ? [e.relecture] : []))).size;
   const etape = async (i: number) => {
     try {
       await avancerLigne(data.lignes[i], etats[i], i);
@@ -398,8 +441,30 @@ export async function avancer(id: string): Promise<Execution> {
   await Promise.all(etats.map((e, i) => (e.phase ? etape(i) : null)));
   for (const i of etats.keys()) {
     if (etats[i].phase || etats[i].resultat) continue;
-    if (ouvertes() + tous.length > MAX_SESSIONS && ouvertes() > 0) break;
+    if (!groupe && ouvertes() + tous.length > MAX_SESSIONS && ouvertes() > 0) break;
     await etape(i);
+  }
+  if (attente.length) await demarrerGroupes();
+
+  // Une session par groupe de lignes et par site ; autant de groupes que H a de places (3), répartis entre les sites.
+  async function demarrerGroupes() {
+    const parSite = new Map<string, typeof attente>();
+    for (const a of attente) parSite.set(a.d.site, [...(parSite.get(a.d.site) ?? []), a]);
+    const parts = Math.max(1, Math.floor(PLACES_H / parSite.size));
+    await Promise.all([...parSite.values()].flatMap((liste) => {
+      const taille = Math.min(GROUPE_MAX, Math.ceil(liste.length / parts));
+      const groupes = Array.from({ length: Math.ceil(liste.length / taille) }, (_, k) => liste.slice(k * taille, (k + 1) * taille));
+      return groupes.map(async (g) => {
+        const d = g[0].d;
+        try {
+          const s = await demarrerSession({ agent: w.agent!, message: messageGroupe(g.map((x) => ({ ligne: lignesData[x.rang], ecarts: x.ecarts, coller: x.coller })), d, w.procedure!.nom), format: FORMAT_AGIR, startUrl: d.url!, sites: g.length });
+          for (const x of g) x.e.sessions = (x.e.sessions ?? []).map((y) => (y.site === d.site && !y.id ? { ...y, id: s.id, debut: Date.now() } : y));
+          p.lien ??= (await session(s.id)).agent_view_url;
+        } catch (err) {
+          for (const x of g) Object.assign(x.e, { phase: undefined, sessions: undefined, resultat: { cle: lignesData[x.rang].cle, statut: 'echec', portails: {}, raison: `L'agent n'a pas pu démarrer : ${(err as Error).message}` } });
+        }
+      });
+    }));
   }
 
   p.lignes = etats;
