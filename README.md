@@ -7,7 +7,7 @@ Vous partagez votre fenêtre et travaillez normalement. Ghost repère la tâche 
 - Application en ligne : https://ghost-the-task.vercel.app
 - Projet de la **Team 14** du hackathon « Build The Future » (Eugenia × H Company, 16 au 20 novembre 2026).
 - Équipe : Alejandro Mendoza Hermida (CTO, application et agents H), Assel (CEO), Binta (CPO), Henriquet Makiadi (CDO, données et Supabase), Omar (CAIO), Vladimir (CAO).
-- Dépôt de l'équipe : https://github.com/kudozinho/Team_14_Eugenia
+- Dépôt de l'équipe : https://github.com/alejomendozahermida-png/ghost
 
 ## Le problème
 
