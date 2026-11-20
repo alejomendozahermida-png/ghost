@@ -8,6 +8,7 @@ const LIENS = [
   ['/observer', 'Observer'],
   ['/workflows', 'Mes workflows'],
   ['/acces', 'Mes accès'],
+  ['/espace', 'Équipe'],
   ['/tarifs', 'Tarifs'],
 ] as const;
 
