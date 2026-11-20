@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { boutonPrincipal } from '@/components/PageEntete';
-import { DemoDirecte } from '@/components/DemoDirecte';
 import { FenetreObservee, MethodeEcrite, SitesFaits } from '@/components/Illustrations';
 
 const ETAPES = [
@@ -45,7 +44,9 @@ export default function Accueil() {
             <a href="#comment" className="lien py-3 text-[15px] font-medium text-nuit">Voir comment ça marche</a>
           </div>
         </div>
-        <div className="monter [animation-delay:200ms]"><DemoDirecte /></div>
+        <div className="monter flex justify-center [animation-delay:150ms] md:justify-end">
+          <Logo taille={260} anime suivreSouris decoratif />
+        </div>
       </section>
 
       <section id="comment" className="mt-32 scroll-mt-10">
