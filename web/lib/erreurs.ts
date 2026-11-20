@@ -41,6 +41,13 @@ export function regroupe(raisons: string[]): ErreurFrequente[] {
     }));
 }
 
+// Champs déjà mal recopiés au moins une fois sur ce workflow : ceux-là, l'agent les colle au lieu de les taper.
+export async function champsARisque(workflowId: string): Promise<Set<string>> {
+  const { data } = await db.from('executions').select('verification').eq('workflow_id', workflowId).order('cree_le', { ascending: false }).limit(DERNIERES);
+  const raisons = (data ?? []).flatMap((e) => ((e.verification ?? {}) as Progres).resultats ?? []).flatMap((r) => (r.raison ?? '').split(' ; '));
+  return new Set(raisons.map((x) => CHAMP.exec(x)?.[2]?.trim()).filter((x): x is string => !!x));
+}
+
 // Les erreurs qui reviennent sur les dernières exécutions d'un workflow.
 export async function erreursFrequentes(workflowId: string): Promise<ErreurFrequente[]> {
   const { data } = await db.from('executions').select('verification').eq('workflow_id', workflowId).order('cree_le', { ascending: false }).limit(DERNIERES);

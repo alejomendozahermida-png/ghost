@@ -1,3 +1,4 @@
+import { champsARisque } from '@/lib/erreurs';
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -163,11 +164,12 @@ function egal(lu: string | undefined, attendu: string): boolean {
 }
 
 // La demande vient de notre code, pas du texte généré : celui-ci citait parfois une partie des sites seulement.
-// Champs à coller plutôt qu'à taper : les textes assez longs pour que le modèle de l'agent les « corrige »
-// (« Apartment », « commerciaux »), et tout champ déjà faux à un essai précédent. Les nombres et les mots courts restent tapés.
-export function aColler(ligne: Ligne, ecarts: string[]): string[] {
+// Champs à coller plutôt qu'à taper : seulement ceux déjà mal recopiés (« Apartment », « commerciaux »),
+// sur cette ligne à l'essai d'avant ou sur ce workflow. Coller coûte environ 5 étapes par champ : on ne le fait pas partout
+// (tout coller faisait passer un agent de 8 à 22 étapes). Les nombres et les mots courts restent tapés.
+export function aColler(ligne: Ligne, ecarts: string[], risques: Set<string> = new Set()): string[] {
   return Object.entries(ligne.valeurs)
-    .filter(([c, v]) => !PHOTO.test(c) && v.trim() && !estNombre(v) && (v.trim().length >= COLLER_MIN || ecarts.some((x) => x.includes(`, ${c} :`))))
+    .filter(([c, v]) => !PHOTO.test(c) && v.trim().length >= COLLER_MIN && !estNombre(v) && (risques.has(c) || ecarts.some((x) => x.includes(`, ${c} :`))))
     .map(([c]) => c);
 }
 
@@ -192,7 +194,7 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     // Erreurs vues en vrai : « Apartment » pour « Appartement », « idéal » pour « Idéal ». La relecture après publication les voit, mais trop tard.
     `Garde chaque majuscule, chaque accent et la langue d'origine : ne traduis rien en anglais (« Appartement », jamais « Apartment »).`,
     // Bornée : une correction illimitée a épuisé le budget de l'agent sur un seul mot (« lumineux » / « lumineuse »).
-    `Avant de cliquer sur le bouton qui publie, relis chaque champ une seule fois. Si un champ diffère des valeurs ci-dessus, vide-le entièrement (Ctrl+A puis Suppr) et retape la valeur complète, une seule fois, sans corriger lettre par lettre. Puis publie : Ghost relira la page publiée.`,
+    `Avant de cliquer sur le bouton qui publie, relis une seule fois les champs que tu as tapés${coller?.colonnes.length ? ' (pas ceux collés : ils sont exacts)' : ''}. Si l'un diffère des valeurs ci-dessus, vide-le (Ctrl+A puis Suppr) et retape la valeur complète, une seule fois. Puis publie : Ghost relira la page publiée.`,
     ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : '',
   ].filter(Boolean).join('\n');
 }
@@ -236,8 +238,10 @@ export async function avancer(id: string): Promise<Execution> {
   const tous = w.destinations ?? [];
   // La page des valeurs à coller n'existe qu'en ligne (l'agent H ne voit pas localhost).
   const site = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  const collerPour = (rang: number, ecarts: string[]) => {
-    const colonnes = aColler(data.lignes[rang], ecarts);
+  let risques: Promise<Set<string>> | null = null; // lu une fois par appel, seulement si un agent démarre
+  const collerPour = async (rang: number, ecarts: string[]) => {
+    risques ??= champsARisque(w.id).catch(() => new Set<string>());
+    const colonnes = aColler(data.lignes[rang], ecarts, await risques);
     if (!site || !colonnes.length) return undefined;
     return { colonnes, url: `https://${site}/coller/${id}/${rang}?${colonnes.map((c) => `c=${encodeURIComponent(c)}`).join('&')}` };
   };
@@ -261,8 +265,9 @@ export async function avancer(id: string): Promise<Execution> {
     // Un agent par site, ouvert directement sur le formulaire.
     // shortcut: si un démarrage échoue, les sessions déjà lancées continuent seules chez H ; à arrêter proprement si ça arrive souvent.
     const lancerAgir = async (sites: Destination[], ecarts: string[]) => {
+      const coller = await collerPour(rang, ecarts);
       const lancees = await Promise.all(sites.map((d) =>
-        demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, collerPour(rang, ecarts)), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
+        demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, coller), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
       const sansPhoto = !colonnePhoto || !ligne.valeurs[colonnePhoto];
       Object.assign(e, { phase: 'agir', sessions: lancees.map((s, i) => ({ site: sites[i].site, id: s.id, photo: sansPhoto })) });
       p.lien ??= (await session(lancees[0].id)).agent_view_url;
