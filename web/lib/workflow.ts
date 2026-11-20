@@ -114,7 +114,13 @@ function distance(a: string, b: string): number {
 }
 
 async function joignable(url: string): Promise<boolean> {
-  if (estSheet(url)) return lireSheet(url).then(() => true, () => false);
+  if (estSheet(url)) {
+    if (await lireSheet(url).then(() => true, () => false)) return true;
+    // Un Sheet privé répond 401 ou 403 : il existe, l'agent y accède avec le compte Google enregistré ou un partage. 404 : il n'existe pas.
+    const id = url.match(/\/spreadsheets\/d\/([\w-]+)/)?.[1];
+    const r = id ? await fetch(`https://docs.google.com/spreadsheets/d/${id}/edit`, { redirect: 'manual', signal: AbortSignal.timeout(8000) }).catch(() => null) : null;
+    return !!r && r.status !== 404 && r.status < 500;
+  }
   const r = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(8000) }).catch(() => null);
   return !!r && r.status !== 404 && r.status !== 410 && r.status < 500;
 }
