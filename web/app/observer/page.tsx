@@ -22,6 +22,8 @@ interface Repere {
   id: string;
   nom: string;
   occurrences: number;
+  resume?: string; // débrief de l'analyse demandée
+  etapes?: string[];
 }
 interface Etape {
   id: number;
@@ -73,6 +75,8 @@ export default function Observer() {
   const [secondes, setSecondes] = useState(0);
   const [lignes, setLignes] = useState<Ligne[]>([]);
   const [repere, setRepere] = useState<Repere | null>(null);
+  const [observation, setObservation] = useState<string | null>(null);
+  const [analyse, setAnalyse] = useState<{ enCours: boolean; erreur: string | null }>({ enCours: false, erreur: null });
   const [erreur, setErreur] = useState<string | null>(null);
   const [illisibles, setIllisibles] = useState(0); // captures que Holo n'a pas pu lire
   const [permission, setPermission] = useState<Permission>('default');
@@ -119,6 +123,16 @@ export default function Observer() {
     setEtat('pret');
   }
 
+  // « J'ai fini » : Qwen analyse toutes les étapes vues et Ghost crée le workflow, sans attendre la détection automatique.
+  async function analyserMaintenant() {
+    if (!observation) return;
+    setAnalyse({ enCours: true, erreur: null });
+    const r = await fetch(`/api/observations/${observation}/analyser`, { method: 'POST' }).catch(() => null);
+    const d = r ? await r.json().catch(() => null) : null;
+    if (r?.ok && d) setRepere(d as Repere);
+    setAnalyse({ enCours: false, erreur: r?.ok ? null : d?.erreur ?? 'L’analyse n’a pas abouti. Réessayez.' });
+  }
+
   async function demarrer() {
     setErreur(null);
     if (permission === 'default') await activerNotifications();
@@ -136,6 +150,7 @@ export default function Observer() {
       return;
     }
     const { id } = (await r.json()) as { id: string };
+    setObservation(id);
     flux.current = stream;
     stream.getVideoTracks()[0].addEventListener('ended', arreter); // bouton « Arrêter le partage » de Chrome
     setSecondes(0);
@@ -351,6 +366,9 @@ export default function Observer() {
           <button onClick={arreter} className="bouton rounded-full px-6 py-3 text-sm font-semibold text-alerte hover:bg-alerte-clair">
             Arrêter
           </button>
+          <button onClick={analyserMaintenant} disabled={analyse.enCours || lignes.length === 0} className={boutonPrincipal}>
+            {analyse.enCours ? 'Analyse…' : repere?.resume ? 'Analyser de nouveau' : 'J’ai fini, analyser'}
+          </button>
         </div>
       </header>
 
@@ -385,9 +403,22 @@ export default function Observer() {
         <aside className="lg:sticky lg:top-10 lg:self-start">
           {repere ? (
             <div role="status" className="monter rounded-3xl bg-nuit p-8 text-white shadow-[0_30px_70px_-30px_rgb(11_29_69/0.75)]">
-              <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-white/70">Workflow repéré</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-white/70">{repere.resume ? 'Ce que Ghost a compris' : 'Workflow repéré'}</p>
               <p className="mt-3 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
-              <p className="mt-3 text-[15px] text-white/75">Vous l’avez fait {repere.occurrences} fois. Ghost peut le faire à votre place.</p>
+              {repere.resume && <p className="mt-3 text-[15px] leading-relaxed text-white/85">{repere.resume}</p>}
+              {repere.etapes?.length ? (
+                <ol className="mt-5 space-y-2">
+                  {repere.etapes.map((e, i) => (
+                    <li key={i} className="flex gap-3 text-sm text-white/80">
+                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/15 font-mono text-[11px]">{i + 1}</span>
+                      <span>{e}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+              <p className="mt-4 text-[15px] text-white/75">
+                {repere.occurrences > 1 ? `Vous l’avez fait ${repere.occurrences} fois.` : 'Vue une fois.'} Ghost peut le faire à votre place.
+              </p>
               <Link href={`/workflows/${repere.id}`} className="bouton mt-7 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-nuit">
                 Voir ce que Ghost a compris
               </Link>
@@ -396,6 +427,8 @@ export default function Observer() {
             <div className="rounded-3xl border border-trait bg-surface p-8">
               <p className="text-[15px] font-semibold text-encre">Rien de répété pour l’instant</p>
               <p className="mt-2 text-[15px] leading-relaxed text-texte">Ghost vous préviendra ici, et par une notification, dès qu’une tâche revient deux fois.</p>
+              <p className="mt-4 text-sm text-discret">Vous avez fini et rien n’est apparu ? « J’ai fini, analyser » demande à Ghost de décrire la tâche maintenant.</p>
+              {analyse.erreur && <p role="alert" className="mt-3 text-sm text-alerte">{analyse.erreur}</p>}
             </div>
           )}
         </aside>

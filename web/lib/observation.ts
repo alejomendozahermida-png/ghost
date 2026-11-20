@@ -130,6 +130,48 @@ export async function detecter(observationId: string, finDeTache: boolean): Prom
   return data;
 }
 
+// Analyse demandée par l'utilisateur (« J'ai fini ») : toutes les étapes vont à Qwen, qui décrit la tâche même vue une seule fois.
+const DEBRIEF = `Voici, dans l'ordre, toutes les étapes observées sur le poste d'une personne (site · écran · action · champ · valeur) :
+{etapes}
+La personne vient de terminer une tâche qu'elle veut confier à un agent. Décris la tâche principale, en ignorant les gestes sans rapport.
+Pour savoir où elle lit et où elle écrit, suis les valeurs : une valeur vue d'abord dans un document puis saisie dans un autre va du premier (la source) vers le second (la destination). Les actions peuvent être mal étiquetées : fie-toi au trajet des valeurs.
+Chaque élément traité (une ligne, un client, un ticket) compte comme une occurrence.
+Rends UNIQUEMENT ce JSON :
+{"nom": "nom court à l'infinitif",
+ "resume": "2 phrases au plus : ce qu'elle fait, où elle lit, où elle écrit",
+ "etapes": ["étape 1 en quelques mots", "étape 2", "…"],
+ "occurrences": nombre de fois où la tâche a été faite (1 au moins)}`;
+const ETAPES_MIN_ANALYSE = 3;
+
+export interface Debrief {
+  id: string;
+  nom: string;
+  occurrences: number;
+  resume?: string;
+  etapes?: string[];
+}
+
+export async function analyser(observationId: string): Promise<Debrief | { erreur: string }> {
+  const { data: etapes } = await db.from('etapes').select('*').eq('observation_id', observationId).order('id').returns<Etape[]>();
+  if ((etapes?.length ?? 0) < ETAPES_MIN_ANALYSE) return { erreur: 'Ghost n’a pas encore vu assez d’étapes : faites la tâche au moins une fois en entier.' };
+  const texte = etapes!.slice(-80).map((e) => `- ${e.site} · ${e.ecran} · ${e.action} · ${e.champ ?? ''} · ${e.valeur ?? ''}`).join('\n');
+  const r = await raisonner<{ nom: string; resume: string; etapes: string[]; occurrences: number }>(DEBRIEF.replace('{etapes}', texte)).catch(() => null);
+  if (!r?.nom) return { erreur: 'L’analyse n’a pas abouti. Réessayez dans un instant.' };
+  const occurrences = Math.max(1, Number(r.occurrences) || 1);
+
+  // Un workflow déjà repéré pour cette observation est mis à jour plutôt que doublé.
+  const { data: existant } = await db.from('workflows').select('id').eq('observation_id', observationId).maybeSingle();
+  const { data, error } = existant
+    ? await db.from('workflows').update({ nom: r.nom, occurrences }).eq('id', existant.id).select('id, nom, occurrences').single()
+    : await db
+        .from('workflows')
+        .insert({ observation_id: observationId, user_id: (await db.from('observations').select('user_id').eq('id', observationId).single()).data?.user_id, nom: r.nom, occurrences, statut: 'repere' })
+        .select('id, nom, occurrences')
+        .single();
+  if (error || !data) return { erreur: error?.message ?? 'Workflow non créé.' };
+  return { ...data, resume: r.resume, etapes: (r.etapes ?? []).slice(0, 8) };
+}
+
 // Filet de sécurité propre à nos sites de test : la même annonce publiée sur 2 portails depuis le début de l'observation.
 // shortcut: ne vaut que pour nos 3 portails (leur API de lecture) ; ailleurs, seuls Holo et Qwen repèrent la tâche.
 const PORTAILS_TEST = ['a', 'b', 'c'].map((x) => `https://portail-${x}-ghost.vercel.app/api/annonces`);
