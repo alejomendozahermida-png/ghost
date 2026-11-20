@@ -78,7 +78,7 @@ export default function Connexion() {
 
   return (
     // Plein écran bleu nuit, par-dessus l'en-tête et le pied de page du site : un moment à part, centré sur le fantôme.
-    <section className="fixed inset-0 z-40 overflow-y-auto bg-nuit text-white">
+    <section className="fixed inset-0 z-40 overflow-y-auto overflow-x-hidden bg-nuit text-white">
       <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[14%] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgb(120_150_255/0.22),transparent_62%)]" />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 -right-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,rgb(255_255_255/0.08),transparent_65%)]" />
       <div className="relative mx-auto flex min-h-full max-w-md flex-col px-6 pb-8 pt-6">
