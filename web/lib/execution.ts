@@ -34,9 +34,12 @@ export interface ResultatLigne {
 }
 
 // Avancement d'une ligne : ses agents (un par site), puis la relecture de ses pages.
+export interface Mesure { site: string; etapes: number; duree_s: number; cout: number }
+
 export interface EtatLigne {
   phase?: 'agir' | 'relire';
-  sessions?: { site: string; id: string; photo: boolean }[];
+  sessions?: { site: string; id: string; photo: boolean; debut?: number }[];
+  mesures?: Mesure[]; // un agent par site et par essai : ce qu'il a coûté en étapes, en temps et en argent
   relecture?: string;
   publications?: { site: string; url: string }[];
   etats?: Record<string, Etat>;
@@ -150,7 +153,6 @@ export async function nouvellesLignes(workflowId: string, lignes: Ligne[]): Prom
   return lignes.filter((l) => l.cle && (!vues.has(l.cle) || (vues.get(l.cle) !== null && vues.get(l.cle) !== empreinte(l))));
 }
 
-const epeler = (t: string) => t.split(/\s+/).map((m) => [...m].join('-')).join(' / ');
 const A_COURT = /budget|épuis|nombre (maximum )?d'étapes|max.?steps|temps (imparti|écoulé)|time.?out/i; // l'agent s'est arrêté faute de moyens
 const COLLER_MIN = 12; // en dessous (« Massy », « C »), taper ne pose pas de problème
 const estNombre = (v: string) => /^[\d\s.,€]+$/.test(v.trim());
@@ -176,8 +178,6 @@ export function aColler(ligne: Ligne, ecarts: string[], risques: Set<string> = n
 function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: string[], coller?: { url: string; colonnes: string[] }): string {
   const valeurs = Object.entries(ligne.valeurs).filter(([c]) => !PHOTO.test(c));
   const vides = valeurs.filter(([, v]) => !v.trim()).map(([c]) => c);
-  const textes = valeurs.filter(([, v]) => v && !estNombre(v) && v.length <= 60);
-  const longs = valeurs.filter(([c, v]) => v && !estNombre(v) && v.length > 60 && !coller?.colonnes.includes(c)).map(([c]) => c);
   // Tâche sans données : on la refait telle qu'observée.
   if (!valeurs.length) return [`Fais la tâche « ${tache} » sur ce(s) site(s), en suivant les étapes de ta Skill :`, ...sites.map((s) => `- ${s.site} : ${s.url}`)].join('\n');
   return [
@@ -186,14 +186,11 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     sites.length === 1 ? `Ne fais que ${sites[0].site} : les autres sites sont faits en même temps par d'autres agents. N'en ouvre aucun autre.` : '',
     `Valeurs :`, ...valeurs.map(([c, v]) => `- ${c} : « ${v} »`),
     vides.length ? `Valeurs vides dans cette ligne : ${vides.join(', ')}.` : '',
-    ...textes.filter(([c]) => !coller?.colonnes.includes(c)).map(([c, v]) => `${c} s'épelle lettre par lettre : ${epeler(v)}.`),
     coller?.colonnes.length
-      ? `Ne tape pas ${coller.colonnes.join(', ')} : copie-colle-les. Ouvre ${coller.url} dans un nouvel onglet (Ctrl+T, puis l'adresse). Pour chacun de ces champs : dans cet onglet, clique dans sa zone, Ctrl+A puis Ctrl+C ; reviens à l'onglet du formulaire, clique dans le champ, Ctrl+V. Si tu ne peux pas ouvrir d'onglet, tape la valeur.`
+      ? `Ne tape pas ${coller.colonnes.join(', ')} : copie-colle-les. Ouvre ${coller.url} dans un nouvel onglet (Ctrl+T, puis l'adresse). Pour chacun : dans cet onglet, clique dans sa zone, Ctrl+A puis Ctrl+C ; dans l'onglet du formulaire, clique dans le champ, Ctrl+V. Si tu ne peux pas ouvrir d'onglet, tape la valeur.`
       : '',
-    longs.length ? `${longs.join(', ')} : tape le texte mot pour mot, avec la même ponctuation. Ne corrige, n'accorde, ne raccourcis et ne remplace AUCUN mot, même s'il te semble faux (garde « commerces », n'écris pas « commerciaux »). Relis-le avant de valider.` : '',
-    // Erreurs vues en vrai : « Apartment » pour « Appartement », « idéal » pour « Idéal ». La relecture après publication les voit, mais trop tard.
-    `Garde chaque majuscule, chaque accent et la langue d'origine : ne traduis rien en anglais (« Appartement », jamais « Apartment »).`,
-    // Bornée : une correction illimitée a épuisé le budget de l'agent sur un seul mot (« lumineux » / « lumineuse »).
+    // Une seule consigne de recopie (elle est relue à chaque étape : chaque ligne en trop ralentit l'agent).
+    `Recopie chaque valeur à l'identique : mêmes mots, majuscules, accents et ponctuation, sans traduire en anglais, corriger ni raccourcir (« Appartement », jamais « Apartment » ; « commerces », jamais « commerciaux »).`,
     `Avant de cliquer sur le bouton qui publie, relis une seule fois les champs que tu as tapés${coller?.colonnes.length ? ' (pas ceux collés : ils sont exacts)' : ''}. Si l'un diffère des valeurs ci-dessus, vide-le (Ctrl+A puis Suppr) et retape la valeur complète, une seule fois. Puis publie : Ghost relira la page publiée.`,
     ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : '',
   ].filter(Boolean).join('\n');
@@ -269,7 +266,7 @@ export async function avancer(id: string): Promise<Execution> {
       const lancees = await Promise.all(sites.map((d) =>
         demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, coller), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
       const sansPhoto = !colonnePhoto || !ligne.valeurs[colonnePhoto];
-      Object.assign(e, { phase: 'agir', sessions: lancees.map((s, i) => ({ site: sites[i].site, id: s.id, photo: sansPhoto })) });
+      Object.assign(e, { phase: 'agir', sessions: lancees.map((s, i) => ({ site: sites[i].site, id: s.id, photo: sansPhoto, debut: Date.now() })) });
       p.lien ??= (await session(lancees[0].id)).agent_view_url;
     };
     const lancerRelire = async () => {
@@ -360,6 +357,7 @@ export async function avancer(id: string): Promise<Execution> {
 
     const chs = await Promise.all(sessions.map((s) => changements(s.id)));
     p.cout += chs.reduce((n, ch) => n + (ch.metrics?.total_cost ?? 0), 0);
+    e.mesures = [...(e.mesures ?? []), ...sessions.map((s, i) => ({ site: s.site, etapes: chs[i].metrics?.steps ?? 0, duree_s: s.debut ? Math.round((Date.now() - s.debut) / 1000) : 0, cout: chs[i].metrics?.total_cost ?? 0 }))];
     const reps = chs.map((ch) => ch.answer as ReponseAgir | undefined);
     // Un agent à court d'étapes ou de temps n'a rien refusé : c'est un échec, relançable, pas un refus voulu.
     const signal = reps.find((r) => r?.statut === 'signale' && !A_COURT.test(r.raison ?? ''));

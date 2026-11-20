@@ -40,6 +40,7 @@ export interface Workflow {
   source_nom: string | null;
   destinations: Destination[] | null;
   regles: string[] | null;
+  modele?: 'precis' | 'rapide';
   surveillance: boolean;
   user_id: string | null;
   planification: Planification | null;
@@ -234,6 +235,7 @@ export async function preparer(id: string): Promise<Workflow> {
       nom,
       destinations[0].url!,
       w.user_id ? await coffreDe(w.user_id) : undefined, // ses accès : H remplit les connexions sans que le modèle voie les secrets
+      w.modele === 'rapide' ? 'holo3-1-35b-a3b' : 'holo4-27b',
     );
     agent = nom;
   }

@@ -44,7 +44,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const moi = await utilisateur();
   if (!moi || !(await appartient('workflows', id, moi.id))) return NON_CONNECTE();
-  const corps = (await req.json()) as { sheet_url?: string; source?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean; planification?: unknown; webhook?: string };
+  const corps = (await req.json()) as { sheet_url?: string; source?: string; destinations?: Destination[]; regles?: string[]; surveillance?: boolean; planification?: unknown; webhook?: string; modele?: string };
+  if ('modele' in corps && corps.modele !== 'precis' && corps.modele !== 'rapide') return Response.json({ erreur: 'Modèle inconnu.' }, { status: 400 });
 
   // Déclencheurs (heure planifiée, lien) : ils ne changent pas l'agent, rien à regénérer.
   if ('planification' in corps || 'webhook' in corps) {
@@ -62,7 +63,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return e ? Response.json({ erreur: e.message }, { status: 400 }) : Response.json(await lireWorkflow(id));
   }
   if (corps.source !== undefined && !['lecture', 'sheet', 'formulaire', 'aucune'].includes(corps.source)) return Response.json({ erreur: 'Source inconnue.' }, { status: 400 });
-  const champs = Object.fromEntries(Object.entries(corps).filter(([k]) => ['sheet_url', 'source', 'destinations', 'regles', 'surveillance'].includes(k)));
+  const champs = Object.fromEntries(Object.entries(corps).filter(([k]) => ['sheet_url', 'source', 'destinations', 'regles', 'surveillance', 'modele'].includes(k)));
   const { error } = await db.from('workflows').update(champs).eq('id', id);
   if (error) return Response.json({ erreur: error.message }, { status: 400 });
   const seuleVeille = 'surveillance' in champs && Object.keys(champs).length === 1;

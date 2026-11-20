@@ -11,6 +11,7 @@ export interface LigneSheet {
 }
 
 export interface WorkflowVue {
+  modele?: 'precis' | 'rapide';
   erreurs_frequentes?: { site: string; champ: string | null; fois: number; regle: string }[];
   id: string;
   nom: string;

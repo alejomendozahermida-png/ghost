@@ -18,6 +18,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     courant: p?.courant ?? 0,
     lignes: e.lignes,
     phases: p?.lignes?.map((l) => l.phase ?? null) ?? [],
+    mesures: p?.lignes?.map((l) => l.mesures ?? []) ?? [],
     resultats: p?.resultats ?? [],
     lien_session_h: p?.lien ?? null,
     relances: p?.lignes?.reduce((n, l) => n + (l.relances ?? 0), 0) ?? 0,

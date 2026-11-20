@@ -7,7 +7,7 @@ import { Preparation } from '@/components/Preparation';
 import { Declencheurs } from '@/components/Declencheurs';
 
 const champ = 'verre-champ w-full rounded-xl border border-champ/70 px-4 py-3 text-[15px] outline-none transition focus:border-nuit';
-type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille' | 'planif' | 'lien';
+type Section = 'sheet' | 'source' | 'sites' | 'regles' | 'veille' | 'planif' | 'lien' | 'modele';
 type Source = 'lecture' | 'sheet' | 'formulaire' | 'aucune';
 const SOURCES: { id: Source; nom: string; texte: string }[] = [
   { id: 'lecture', nom: 'L’agent la lit', texte: 'Il ouvre le document dans son navigateur, comme vous.' },
@@ -251,6 +251,24 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             ))}
           </div>
           <p className="mt-4 text-sm text-discret">{w.gain.executions} exécution(s) réussie(s).</p>
+
+          {/* Le modèle de l'agent : précis par défaut ; rapide va 3 fois plus vite et coûte 5 fois moins, avec plus de fautes à relancer. */}
+          <div className="mt-6">
+            <p id="modele" className="text-[15px] font-medium">Agent</p>
+            <div role="radiogroup" aria-labelledby="modele" className="mt-2 grid grid-cols-2 gap-1 rounded-2xl bg-nuit/[0.06] p-1">
+              {([['precis', 'Précis', 'Moins de fautes'], ['rapide', 'Rapide', '3× plus vite, à vérifier']] as const).map(([v, nom, aide]) => {
+                const actif = (w.modele ?? 'precis') === v;
+                return (
+                  <button key={v} role="radio" aria-checked={actif} disabled={envoi} onClick={() => !actif && enregistrer({ modele: v }, 'modele')}
+                    className={`rounded-xl px-3 py-2 text-left transition-colors disabled:opacity-60 ${actif ? 'bg-white text-nuit shadow-[0_1px_2px_rgb(11_29_69/0.12)]' : 'text-texte hover:text-nuit'}`}>
+                    <span className="block text-sm font-semibold">{nom}</span>
+                    <span className="block text-[12px] text-discret">{aide}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {retour('modele')}
+          </div>
 
           {w.en_cours && (
             <Link href={`/workflows/${w.id}/lancer?execution=${w.en_cours}`} className="bouton mt-8 flex items-center gap-3 rounded-xl bg-nuit-clair px-4 py-3 text-sm font-semibold text-nuit">

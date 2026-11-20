@@ -36,6 +36,7 @@ interface Suivi {
   cout_usd: number | null;
   cree_le: string;
   fausses?: { cle: string; site: string; url: string }[];
+  mesures?: { site: string; etapes: number; duree_s: number; cout: number }[][];
 }
 
 export default function Lancer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ execution?: string }> }) {
@@ -294,6 +295,11 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
             <li key={l.cle} className="grid gap-4 py-6 md:grid-cols-[1fr_auto] md:items-center">
               <div>
                 <p className="text-[15px] font-medium">{titre(l)}</p>
+                {(suivi?.mesures?.[i]?.length ?? 0) > 0 && (
+                  <p className="mt-1 font-mono text-[12px] text-discret">
+                    {suivi!.mesures![i].map((m) => `${m.site} · ${m.etapes} étapes · ${m.duree_s} s · ${m.cout.toFixed(3)} $`).join('   ')}
+                  </p>
+                )}
                 <p className={`mt-1 text-sm ${res?.statut === 'signale' ? 'text-succes' : res?.statut === 'echec' ? 'text-alerte' : 'text-texte'}`}>
                   {res?.statut === 'signale' ? `Non fait, l’agent a refusé : ${res.raison}` : res?.statut === 'echec' ? res.raison : enCours ? (suivi?.phases?.[i] === 'relire' ? 'Relecture…' : 'En cours…') : res ? (Object.keys(l.valeurs).length ? 'Fait et relu sur chaque site.' : 'Fait.') : 'En attente'}
                 </p>

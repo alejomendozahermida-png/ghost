@@ -60,19 +60,20 @@ async function creerOuRemplacer(type: 'skills' | 'agents', nom: string, corps: o
 export const enregistrerSkill = (nom: string, description: string, body: string) =>
   creerOuRemplacer('skills', nom, { description, body });
 
-export const enregistrerAgent = (nom: string, description: string, instructions: string, skill: string, startUrl: string, vaultId?: string) =>
+// Modèle : holo4-27b (précis) ou holo3-1-35b-a3b (rapide : 3 étapes et 0,006 $ au lieu de ~10 et 0,03 $, mais plus de fautes de recopie).
+export const enregistrerAgent = (nom: string, description: string, instructions: string, skill: string, startUrl: string, vaultId?: string, modele = 'holo4-27b') =>
   creerOuRemplacer('agents', nom, {
     description,
     instructions,
     skills: [skill],
     environments: [{ kind: 'web', id: 'web', host: 'cloud', start_url: startUrl, ...(vaultId ? { vault_id: vaultId } : {}) }],
-    model: 'holo4-27b',
+    model: modele,
   });
 
 export const session = (id: string) => h<{ agent_view_url?: string }>(`/sessions/${id}`);
 export const statut = (id: string) => h<{ status: StatutH; error?: string | null }>(`/sessions/${id}/status`);
 export const changements = (id: string) =>
-  h<{ answer?: unknown; metrics?: { total_cost?: number } }>(`/sessions/${id}/changes?from_index=0&wait_for_seconds=0`);
+  h<{ answer?: unknown; metrics?: { total_cost?: number; steps?: number } }>(`/sessions/${id}/changes?from_index=0&wait_for_seconds=0`);
 export const envoyer = (id: string, message: string) =>
   h(`/sessions/${id}/messages`, { method: 'POST', body: JSON.stringify({ type: 'user_message', message }) });
 // H n'accepte un fichier que dans /home/hai/Downloads (un chemin relatif répond 403).
