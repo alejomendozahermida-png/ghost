@@ -6,11 +6,6 @@ import { Logo } from '@/components/Logo';
 import { notifier, type ResultatNotification } from '@/lib/notifier';
 import { boutonPrincipal } from '@/components/PageEntete';
 
-const GARANTIES = [
-  ['Rien n’est filmé', 'Seule la description de chaque écran est gardée, jamais l’image.'],
-  ['Vos connexions restent privées', 'Les pages de connexion sont ignorées. Mettez en pause pour toute action personnelle.'],
-  ['Vous gardez la main', 'Pause et arrêt à tout moment. Rien n’est lancé sans votre accord.'],
-] as const;
 
 type Etat = 'pret' | 'en_cours' | 'pause';
 interface Ligne {
@@ -263,79 +258,40 @@ export default function Observer() {
   }
 
   if (etat === 'pret') {
+    // Un seul message, un seul bouton : le fantôme, ce qu'il fait, et de quoi commencer.
     return (
-      <section className="grid items-center gap-10 pb-8 pt-6 lg:min-h-[calc(100svh-8rem)] lg:grid-cols-[1.35fr_1fr] lg:gap-14">
-        <div>
-          <p className="monter text-[13px] font-semibold uppercase tracking-[0.16em] text-nuit/70">Observation</p>
-          <h1 className="monter mt-3 text-[40px] font-bold leading-[1.05] tracking-[-0.03em] [animation-delay:60ms] md:text-[44px] 2xl:text-[56px]">
-            Travaillez normalement.
-            <span className="block text-nuit/60">Ghost repère le reste.</span>
-          </h1>
-          <p className="monter mt-5 max-w-lg text-[17px] leading-relaxed text-texte [animation-delay:120ms]">
-            Partagez votre fenêtre Chrome et faites votre travail habituel. Dès qu’une tâche revient, Ghost vous prévient et vous propose de la confier à un agent.
-          </p>
-          <div className="monter mt-8 flex flex-wrap items-center gap-5 [animation-delay:180ms]">
-            <button onClick={demarrer} className={boutonPrincipal}>Démarrer l’observation</button>
-            <p className="text-sm text-discret">Chrome ou Edge, sur ordinateur.</p>
-          </div>
-          <div className="monter mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm [animation-delay:240ms]">
-            {permission === 'granted' ? (
-              <>
-                <span className="flex items-center gap-2 text-succes"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-succes" />Notifications activées</span>
-                <button onClick={tester} className="lien py-2 text-nuit">Envoyer une notification d’essai</button>
-              </>
-            ) : permission === 'default' ? (
-              <button onClick={activerNotifications} className="lien py-2 text-nuit">Activer les notifications pour être prévenu</button>
-            ) : permission === 'denied' ? (
-              <span className="text-texte">Notifications bloquées : autorisez-les avec l’icône à gauche de l’adresse, puis rechargez la page.</span>
-            ) : null}
-          </div>
-          {teste && (
-            <p role="status" className={`mt-1 max-w-lg text-sm ${teste === 'envoyee' ? 'text-discret' : 'text-alerte'}`}>
-              {teste === 'envoyee'
-                ? 'Envoyée par Ghost. Rien ne s’affiche ? Le blocage vient du système : coupez « Ne pas déranger » (Windows : Paramètres › Système › Notifications, puis autorisez Chrome ; Mac : Réglages › Notifications › Chrome).'
-                : teste === 'non_autorisee'
-                  ? 'Les notifications ne sont pas autorisées pour ce site : autorisez-les avec l’icône à gauche de l’adresse, puis rechargez.'
-                  : 'Ce navigateur ne sait pas afficher de notifications. Ouvrez Ghost dans Chrome, Edge ou Firefox (sur iPhone : ajoutez d’abord Ghost à l’écran d’accueil).'}
-            </p>
-          )}
-          {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
-          <ul className="monter mt-10 grid gap-4 sm:grid-cols-3 [animation-delay:300ms]">
-            {GARANTIES.map(([titre, texte], n) => (
-              <li key={titre} className="flex gap-3">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-nuit-clair font-mono text-xs font-medium text-nuit">{n + 1}</span>
-                <div>
-                  <p className="text-sm font-semibold text-encre">{titre}</p>
-                  <p className="mt-0.5 text-[13px] leading-snug text-texte">{texte}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+      <section className="mx-auto flex max-w-xl flex-col items-center pb-10 pt-10 text-center lg:min-h-[calc(100svh-10rem)] lg:justify-center">
+        <div className="monter">
+          <Logo taille={132} anime humeur="observe" suivreSouris decoratif />
         </div>
-
-        {/* Aperçu : une fenêtre de travail que le fantôme parcourt du regard. */}
-        <figure aria-hidden="true" className="monter relative hidden sm:block [animation-delay:200ms]">
-          <div className="overflow-hidden verre rounded-2xl">
-            <div className="flex items-center gap-1.5 border-b border-trait px-4 py-3">
-              <i className="h-2.5 w-2.5 rounded-full bg-trait" /><i className="h-2.5 w-2.5 rounded-full bg-trait" /><i className="h-2.5 w-2.5 rounded-full bg-trait" />
-              <span className="ml-3 h-5 flex-1 rounded-full bg-fond" />
-            </div>
-            <div className="relative space-y-4 overflow-hidden p-7">
-              <div className="h-4 w-2/5 rounded-md bg-encre/10" />
-              {[0.9, 0.75, 0.85, 0.6].map((w, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="h-2.5 w-24 rounded bg-encre/10" />
-                  <div className="h-9 rounded-xl border border-trait" style={{ width: `${w * 100}%` }} />
-                </div>
-              ))}
-              <div className="h-10 w-32 rounded-xl bg-nuit/85" />
-              <div className="balayer absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent via-nuit/10 to-transparent" />
-            </div>
-          </div>
-          <div className="absolute -bottom-8 -left-6 verre rounded-2xl p-3">
-            <Logo taille={72} anime humeur="observe" decoratif />
-          </div>
-        </figure>
+        <h1 className="monter mt-8 text-[40px] font-bold leading-[1.05] tracking-[-0.03em] [animation-delay:60ms] md:text-[48px]">
+          Travaillez normalement.
+          <span className="block text-nuit/60">Ghost repère le reste.</span>
+        </h1>
+        <p className="monter mt-5 text-[17px] leading-relaxed text-texte [animation-delay:120ms]">
+          Partagez votre fenêtre Chrome. Dès qu’une tâche revient, Ghost vous propose de la confier à un agent.
+        </p>
+        <button onClick={demarrer} className={`${boutonPrincipal} monter mt-9 [animation-delay:180ms]`}>Démarrer l’observation</button>
+        {erreur && <p role="alert" className="mt-5 text-[15px] text-alerte">{erreur}</p>}
+        <p className="monter mt-6 text-sm text-discret [animation-delay:240ms]">
+          {permission === 'granted' ? (
+            <>Notifications activées · <button onClick={tester} className="lien text-nuit">tester</button></>
+          ) : permission === 'default' ? (
+            <button onClick={activerNotifications} className="lien text-nuit">Activer les notifications</button>
+          ) : permission === 'denied' ? (
+            'Notifications bloquées : autorisez-les à gauche de l’adresse.'
+          ) : null}
+        </p>
+        {teste && (
+          <p role="status" className={`mt-2 text-sm ${teste === 'envoyee' ? 'text-discret' : 'text-alerte'}`}>
+            {teste === 'envoyee'
+              ? 'Envoyée. Rien ne s’affiche ? Coupez « Ne pas déranger » et autorisez Chrome dans les notifications du système.'
+              : teste === 'non_autorisee'
+                ? 'Notifications non autorisées pour ce site : autorisez-les à gauche de l’adresse, puis rechargez.'
+                : 'Ce navigateur n’affiche pas de notifications. Ouvrez Ghost dans Chrome ou Edge.'}
+          </p>
+        )}
+        <p className="monter mt-auto pt-14 text-[13px] text-discret [animation-delay:300ms]">Rien n’est filmé, les pages de connexion sont ignorées, et la pause est à un clic.</p>
       </section>
     );
   }
