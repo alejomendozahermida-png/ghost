@@ -41,11 +41,17 @@ export function regroupe(raisons: string[]): ErreurFrequente[] {
     }));
 }
 
-// Champs déjà mal recopiés au moins une fois sur ce workflow : ceux-là, l'agent les colle au lieu de les taper.
+// Couples « site|champ » mal recopiés au moins SEUIL fois sur les dernières exécutions du workflow :
+// sur ce site, ce champ est collé au lieu d'être tapé (« Apartment » revient toujours sur le Portail A, jamais sur le B).
 export async function champsARisque(workflowId: string): Promise<Set<string>> {
   const { data } = await db.from('executions').select('verification').eq('workflow_id', workflowId).order('cree_le', { ascending: false }).limit(DERNIERES);
   const raisons = (data ?? []).flatMap((e) => ((e.verification ?? {}) as Progres).resultats ?? []).flatMap((r) => (r.raison ?? '').split(' ; '));
-  return new Set(raisons.map((x) => CHAMP.exec(x)?.[2]?.trim()).filter((x): x is string => !!x));
+  const compte = new Map<string, number>();
+  for (const x of raisons) {
+    const m = CHAMP.exec(x);
+    if (m) compte.set(`${m[1].trim()}|${m[2].trim()}`, (compte.get(`${m[1].trim()}|${m[2].trim()}`) ?? 0) + 1);
+  }
+  return new Set([...compte].filter(([, n]) => n >= SEUIL).map(([k]) => k));
 }
 
 // Les erreurs qui reviennent sur les dernières exécutions d'un workflow.

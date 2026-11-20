@@ -1,3 +1,4 @@
+import { champsARisque } from '@/lib/erreurs';
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -173,9 +174,11 @@ function egal(lu: string | undefined, attendu: string): boolean {
 // Champs à coller plutôt qu'à taper : seulement ceux déjà mal recopiés (« Apartment », « commerciaux »),
 // sur cette ligne à l'essai d'avant ou sur ce workflow. Coller coûte environ 5 étapes par champ : on ne le fait pas partout
 // (tout coller faisait passer un agent de 8 à 22 étapes). Les nombres et les mots courts restent tapés.
-export function aColler(ligne: Ligne, ecarts: string[], risques: Set<string> = new Set()): string[] {
+// risques : couples « site|champ » souvent faux ; ecarts : erreurs de l'essai précédent sur cette ligne. Seulement pour ce site.
+export function aColler(ligne: Ligne, ecarts: string[], risques: Set<string> = new Set(), site?: string): string[] {
   return Object.entries(ligne.valeurs)
-    .filter(([c, v]) => !PHOTO.test(c) && v.trim().length >= COLLER_MIN && !estNombre(v) && (risques.has(c) || ecarts.some((x) => x.includes(`, ${c} :`))))
+    .filter(([c, v]) => !PHOTO.test(c) && v.trim().length >= COLLER_MIN && !estNombre(v)
+      && (risques.has(`${site}|${c}`) || ecarts.some((x) => x.includes(`, ${c} :`) && (!site || x.startsWith(`${site},`)))))
     .map(([c]) => c);
 }
 
@@ -258,10 +261,12 @@ export async function avancer(id: string): Promise<Execution> {
   const tous = w.destinations ?? [];
   // La page des valeurs à coller n'existe qu'en ligne (l'agent H ne voit pas localhost).
   const site = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  // Coller seulement à la relance, pour le champ qui est ressorti faux : coller partout d'office (d'après l'historique)
-  // faisait passer chaque agent de 8 à 18-21 étapes, et une exécution de 3 lignes à 3 min 31.
-  const collerPour = async (rang: number, ecarts: string[]) => {
-    const colonnes = aColler(data.lignes[rang], ecarts);
+  // Coller seulement ce qui se trompe, là où ça se trompe : le champ faux à l'essai d'avant, ou un couple site/champ
+  // souvent faux. Coller partout d'office faisait passer chaque agent de 8 à 18-21 étapes (3 lignes en 3 min 31).
+  let risques: Promise<Set<string>> | null = null;
+  const collerPour = async (rang: number, ecarts: string[], siteDest?: string) => {
+    risques ??= champsARisque(w.id).catch(() => new Set<string>());
+    const colonnes = aColler(data.lignes[rang], ecarts, await risques, siteDest);
     if (!site || !colonnes.length) return undefined;
     return { colonnes, url: `https://${site}/coller/${id}/${rang}?${colonnes.map((c) => `c=${encodeURIComponent(c)}`).join('&')}` };
   };
@@ -288,16 +293,15 @@ export async function avancer(id: string): Promise<Execution> {
     // Un agent par site, ouvert directement sur le formulaire.
     // shortcut: si un démarrage échoue, les sessions déjà lancées continuent seules chez H ; à arrêter proprement si ça arrive souvent.
     const lancerAgir = async (sites: Destination[], ecarts: string[]) => {
-      const coller = await collerPour(rang, ecarts);
       if (groupe) {
         // Démarré plus bas, avec les autres lignes du même site (voir demarrerGroupes).
         const sansPhotoG = !colonnePhoto || !ligne.valeurs[colonnePhoto];
         Object.assign(e, { phase: 'agir', sessions: sites.map((d) => ({ site: d.site, id: '', photo: sansPhotoG, debut: Date.now() })) });
-        sites.forEach((d) => attente.push({ rang, e, d, ecarts, coller }));
+        for (const d of sites) attente.push({ rang, e, d, ecarts, coller: await collerPour(rang, ecarts, d.site) });
         return;
       }
-      const lancees = await Promise.all(sites.map((d) =>
-        demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, coller), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
+      const lancees = await Promise.all(sites.map(async (d) =>
+        demarrerSession({ agent: w.agent!, message: messageAgir(ligne, [d], w.procedure!.nom, ecarts, await collerPour(rang, ecarts, d.site)), format: FORMAT_AGIR, startUrl: d.url!, sites: 1 })));
       const sansPhoto = !colonnePhoto || !ligne.valeurs[colonnePhoto];
       Object.assign(e, { phase: 'agir', sessions: lancees.map((s, i) => ({ site: sites[i].site, id: s.id, photo: sansPhoto, debut: Date.now() })) });
       p.lien ??= (await session(lancees[0].id)).agent_view_url;
