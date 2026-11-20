@@ -186,3 +186,14 @@ Ce dépôt reprend des éléments construits avec l'équipe 14 du hackathon :
 - pitch, positionnement, go-to-market et vidéo de présentation : Binta Kande.
 
 La capture d'écran dans le navigateur, la lecture des écrans par Holo et la génération de Skills s'inspirent du projet de référence [show-me-once](https://github.com/h-hackathon/show-me-once-hackathon-h), fourni par les organisateurs. Icônes des services : Simple Icons (CC0).
+
+## Équipe
+
+Projet réalisé par l'équipe 14 du hackathon « Build The Future » (Eugenia × H Company, 16 au 20 novembre 2026) :
+
+| Nom | Rôle dans le projet |
+|---|---|
+| Alejandro Mendoza Hermida | Produit, application et agents H |
+| Vladimir Pilioua | Portails de test sans API |
+| Henriquet | Données fictives et photos |
+| Binta Kande | Pitch, positionnement, go-to-market et vidéo |
