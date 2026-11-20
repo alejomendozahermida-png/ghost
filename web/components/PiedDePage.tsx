@@ -16,7 +16,7 @@ export function PiedDePage() {
             <span className="text-[17px] font-bold tracking-tight text-encre">Ghost</span>
           </div>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-texte">Ghost voit ce que vous répétez, et le fait à votre place.</p>
-          <p className="mt-4 text-xs text-discret">Prototype réalisé lors du hackathon Eugenia × H Company. Agents propulsés par H Company.</p>
+          <p className="mt-4 text-xs text-discret">Prototype réalisé lors du hackathon Eugenia × H Company.</p>
         </div>
         {COLONNES.map(([titre, liens]) => (
           <nav key={titre} aria-label={titre}>
