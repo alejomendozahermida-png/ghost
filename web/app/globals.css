@@ -115,6 +115,9 @@ details.reglages[open] > :not(summary) { animation: monter 0.45s cubic-bezier(0.
 .carte { padding: var(--marge); }
 @media (min-width: 768px) { .carte { --marge: 2rem; } }
 .carte.carte-compacte { --marge: 1.25rem; }
+/* Survol d'un module : il s'éclaire d'un voile bleu nuit et d'un liseré coloré, sans ombre portée sous la carte. */
+.carte-survol { transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; }
+.carte-survol:hover { background: rgb(240 244 255 / 0.85); border-color: rgb(11 29 69 / 0.18); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 4px rgb(11 29 69 / 0.05); }
 
 /* Détail d'un module : replié, il se déplie au survol ou au clavier ; toujours ouvert sur un écran tactile. */
 .detail-survol { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.4s var(--ease-doux), opacity 0.3s; }

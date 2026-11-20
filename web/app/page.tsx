@@ -79,7 +79,7 @@ export default async function Accueil() {
         <h2 className="mt-3 max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.03em] text-encre md:text-[40px]">Toute tâche qui consiste à lire quelque part et écrire ailleurs.</h2>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {CAS.map((c) => (
-            <article key={c.tache} className={`carte verre transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-34px_rgb(11_29_69/0.5)] ${c.large ? 'md:col-span-2' : ''}`}>
+            <article key={c.tache} className={`carte verre carte-survol ${c.large ? 'md:col-span-2' : ''}`}>
               <p className="text-sm font-semibold text-nuit">{c.metier}</p>
               <p className="mt-3 text-xl font-bold tracking-tight text-encre">{c.tache}</p>
               <p className="mt-2 text-[15px] leading-relaxed text-texte">{c.detail}</p>

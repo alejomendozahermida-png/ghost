@@ -50,7 +50,7 @@ export function CarteWorkflow({ w, rang = 0 }: { w: WorkflowLigne; rang?: number
 
   return (
     <li
-      className="carte carte-compacte verre group monter relative transition duration-300 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgb(255_255_255/0.9),0_28px_60px_-30px_rgb(11_29_69/0.45)]"
+      className="carte carte-compacte verre group monter relative transition duration-300 carte-survol"
       style={{ animationDelay: `${80 + rang * 50}ms` }}
     >
       <div className="flex items-center gap-4">
