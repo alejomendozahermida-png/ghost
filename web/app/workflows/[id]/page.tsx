@@ -141,6 +141,29 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           </>
         )}
 
+        {/* Les erreurs qui reviennent : chacune avec la règle qui l'évite, ajoutée en un clic. */}
+        {(w.erreurs_frequentes ?? []).filter((x) => !regles.includes(x.regle)).length > 0 && (
+          <>
+            <h2 className={titre}>Erreurs qui reviennent</h2>
+            <ul className="mt-4 space-y-3">
+              {w.erreurs_frequentes!.filter((x) => !regles.includes(x.regle)).map((x) => (
+                <li key={`${x.site}-${x.champ}`} className="carte carte-compacte verre flex flex-wrap items-center gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 text-[13px] font-medium text-alerte">
+                      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-alerte" />{x.fois} fois
+                    </p>
+                    <p className="mt-1 text-[15px] font-semibold text-encre">{x.champ ? `${x.champ} mal recopié sur ${x.site}` : `Annonce introuvable sur ${x.site}`}</p>
+                    <p className="mt-1 text-sm text-texte">Règle proposée : {x.regle}</p>
+                  </div>
+                  <button disabled={envoi} onClick={() => enregistrer({ regles: [...regles, x.regle] }, 'regles')} className="bouton shrink-0 rounded-xl bg-nuit px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+                    Ajouter la règle
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         <h2 className={titre}>Vos règles</h2>
         <ul className="mt-4 space-y-3 text-[15px] text-texte">
           {regles.map((r) => (

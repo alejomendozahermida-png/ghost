@@ -21,6 +21,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     resultats: p?.resultats ?? [],
     lien_session_h: p?.lien ?? null,
     relances: p?.lignes?.reduce((n, l) => n + (l.relances ?? 0), 0) ?? 0,
+    // Annonces publiées avec une valeur fausse : elles restent en ligne, l'utilisateur les supprime.
+    fausses: (p?.lignes ?? []).flatMap((l) => (l.publications ?? []).filter((x) => l.etats?.[x.site] === 'faux').map((x) => ({ cle: l.resultat?.cle ?? '', site: x.site, url: x.url }))),
     resume: e.resume,
     duree_s: e.duree_s,
     cout_usd: e.cout_usd,

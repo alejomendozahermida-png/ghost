@@ -1,3 +1,4 @@
+import { erreursFrequentes } from '@/lib/erreurs';
 import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/supabase';
 import { prochaine, valide, type Planification } from '@/lib/planification';
@@ -33,9 +34,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   let w = await lireWorkflow(id);
   if (!w || w.user_id !== moi.id) return Response.json({ erreur: 'Workflow introuvable.' }, { status: 404 });
   if (w.statut !== 'pret') w = await preparer(id).catch(() => w!);
-  const [sheet, g] = await Promise.all([w.source === 'sheet' && w.sheet_url ? lireSheet(w.sheet_url).catch(() => null) : null, gain(w)]);
+  const [sheet, g, erreurs] = await Promise.all([w.source === 'sheet' && w.sheet_url ? lireSheet(w.sheet_url).catch(() => null) : null, gain(w), erreursFrequentes(id).catch(() => [])]);
   const { data: enCours } = await db.from('executions').select('id').eq('workflow_id', id).eq('statut', 'en_cours').maybeSingle();
-  return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: g, en_cours: enCours?.id ?? null });
+  return Response.json({ ...w, colonnes: sheet?.colonnes ?? [], lignes: sheet?.lignes ?? [], gain: g, en_cours: enCours?.id ?? null, erreurs_frequentes: erreurs });
 }
 
 // Ce que l'utilisateur corrige ou ajoute : la source, les adresses des sites, ses règles métier. L'agent est regénéré.

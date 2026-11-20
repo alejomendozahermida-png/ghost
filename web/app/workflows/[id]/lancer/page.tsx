@@ -35,6 +35,7 @@ interface Suivi {
   duree_s: number | null;
   cout_usd: number | null;
   cree_le: string;
+  fausses?: { cle: string; site: string; url: string }[];
 }
 
 export default function Lancer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ execution?: string }> }) {
@@ -53,6 +54,19 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [maintenant, setMaintenant] = useState(0);
+  const [relance, setRelance] = useState<{ enCours: boolean; erreur: string | null }>({ enCours: false, erreur: null });
+
+  // Relance des seuls échecs : une nouvelle exécution, suivie sur cette même page.
+  async function relancerEchecs() {
+    setRelance({ enCours: true, erreur: null });
+    const r = await fetch(`/api/executions/${execId}/relancer`, { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return setRelance({ enCours: false, erreur: d.erreur ?? 'La relance n’a pas pu partir.' });
+    setRelance({ enCours: false, erreur: null });
+    setSuivi(null);
+    setExecId(d.id);
+    router.replace(`/workflows/${id}/lancer?execution=${d.id}`);
+  }
 
   useEffect(() => {
     fetch(`/api/workflows/${id}`).then((r) => r.json()).then(setW);
@@ -78,6 +92,7 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
   if (!w) return <ChargementSimple />;
 
   const sites = (w.destinations ?? []).map((d) => d.site);
+  const echecs = suivi?.resultats.filter((r) => r.statut === 'echec').length ?? 0;
   const source = w.source ?? 'sheet';
   const [, colTitre, ...autres] = w.colonnes;
   const detail = autres.filter((c) => !/photo|image|description/i.test(c)).slice(0, 3);
@@ -300,10 +315,33 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
         })}
       </ul>
 
+      {fini && (suivi?.fausses?.length ?? 0) > 0 && (
+        <div className="carte verre monter mt-10">
+          <p className="text-[15px] font-semibold text-encre">Annonces publiées avec une erreur</p>
+          <p className="mt-1 text-sm text-texte">Elles restent en ligne : Ghost ne supprime rien. Supprimez-les sur le site avant de relancer, pour éviter un doublon.</p>
+          <ul className="mt-4 space-y-2">
+            {suivi!.fausses!.map((f) => (
+              <li key={f.url} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/55 px-4 py-3 text-sm">
+                <span><b className="font-semibold text-encre">{f.cle}</b> <span className="text-texte">sur {f.site}</span></span>
+                <a href={f.url} target="_blank" rel="noreferrer" className="lien font-semibold text-nuit">Ouvrir l’annonce</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {fini && (
         <div className="monter mt-10 flex flex-wrap items-center justify-between gap-6">
           <p className="text-[15px] text-texte">{suivi?.resume} {suivi?.cout_usd != null && `Coût : ${suivi.cout_usd.toFixed(2)} $.`}</p>
-          <Link href={`/workflows/${id}`} className="bouton rounded-full border border-trait bg-surface px-6 py-3 text-sm font-medium hover:border-encre/30">Retour au workflow</Link>
+          <div className="flex flex-wrap items-center gap-3">
+            {echecs > 0 && (
+              <button onClick={relancerEchecs} disabled={relance.enCours} className="bouton rounded-full bg-nuit px-6 py-3 text-sm font-semibold text-white disabled:opacity-40">
+                {relance.enCours ? 'Relance…' : `Relancer ${echecs === 1 ? 'l’échec' : `les ${echecs} échecs`}`}
+              </button>
+            )}
+            <Link href={`/workflows/${id}`} className="bouton rounded-full border border-trait bg-surface px-6 py-3 text-sm font-medium hover:border-encre/30">Retour au workflow</Link>
+          </div>
+          {relance.erreur && <p role="alert" className="w-full text-sm text-alerte">{relance.erreur}</p>}
         </div>
       )}
     </section>

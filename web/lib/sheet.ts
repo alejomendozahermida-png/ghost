@@ -3,6 +3,8 @@ import 'server-only';
 export interface Ligne {
   cle: string; // valeur de la première colonne (ex. M-0143) : identifie la ligne
   valeurs: Record<string, string>;
+  sites?: string[]; // relance : seulement ces sites (ceux en échec la fois d'avant)
+  ecarts?: string[]; // relance : les erreurs de la fois d'avant, dites à l'agent
 }
 
 // Un CSV avec guillemets, virgules et retours à la ligne dans les cellules (export Google Sheets).

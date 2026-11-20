@@ -19,7 +19,7 @@ const CONTROLE = `Règles de l'utilisateur :
 Ligne à traiter :
 {ligne}
 
-La ligne respecte-t-elle TOUTES les règles ? Une règle qui ne concerne pas cette ligne est respectée. Une valeur vide ne respecte pas une règle qui l'exige.
+La ligne respecte-t-elle TOUTES les règles ? Une règle qui ne concerne pas cette ligne est respectée. Une règle qui dit comment travailler (recopier exactement, vérifier une page) n'est pas une condition sur la ligne : elle est respectée. Une valeur vide ne respecte pas une règle qui l'exige.
 Rends UNIQUEMENT ce JSON : {"respecte": true ou false, "raison": "la règle non respectée et pourquoi, en une phrase, ou null"}`;
 const MAX_SESSIONS = 6; // sessions H ouvertes en même temps pour une exécution
 
@@ -219,7 +219,7 @@ export async function avancer(id: string): Promise<Execution> {
   if (!pris?.length) return data;
 
   const w = (await lireWorkflow(data.workflow_id))!;
-  const destinations = w.destinations ?? [];
+  const tous = w.destinations ?? [];
   const p: Progres = data.verification ?? { courant: 0, cout: 0, resultats: [] };
   if (!data.lignes.length) return lireSource(data, w, p);
   const etats: EtatLigne[] = p.lignes ?? data.lignes.map(() => ({}));
@@ -227,6 +227,8 @@ export async function avancer(id: string): Promise<Execution> {
   const traitees: { cle_ligne: string; empreinte: string; statut: string }[] = [];
 
   async function avancerLigne(ligne: Ligne, e: EtatLigne): Promise<void> {
+    // Une relance ne refait que les sites en échec la fois d'avant.
+    const destinations = ligne.sites?.length ? tous.filter((d) => ligne.sites!.includes(d.site)) : tous;
     const colonnes = Object.keys(ligne.valeurs).filter((c) => !PHOTO.test(c));
     const colonnePhoto = Object.keys(ligne.valeurs).find((c) => PHOTO.test(c));
 
@@ -299,7 +301,7 @@ export async function avancer(id: string): Promise<Execution> {
           .replace('{ligne}', Object.entries(ligne.valeurs).filter(([c]) => !PHOTO.test(c)).map(([c, x]) => `- ${c} : « ${x} »`).join('\n')));
         if (v.respecte === false) return terminer({ cle: ligne.cle, statut: 'signale', portails: {}, raison: `${v.raison ?? 'Une de vos règles n’est pas respectée.'} Rien n'a été publié.` });
       }
-      await lancerAgir(destinations, []).catch((err: Error) => terminer({ cle: ligne.cle, statut: 'echec', portails: {}, raison: `L'agent n'a pas pu démarrer : ${err.message}` }));
+      await lancerAgir(destinations, ligne.ecarts ?? []).catch((err: Error) => terminer({ cle: ligne.cle, statut: 'echec', portails: {}, raison: `L'agent n'a pas pu démarrer : ${err.message}` }));
       return;
     }
 
@@ -367,7 +369,7 @@ export async function avancer(id: string): Promise<Execution> {
   await Promise.all(etats.map((e, i) => (e.phase ? etape(i) : null)));
   for (const i of etats.keys()) {
     if (etats[i].phase || etats[i].resultat) continue;
-    if (ouvertes() + destinations.length > MAX_SESSIONS && ouvertes() > 0) break;
+    if (ouvertes() + tous.length > MAX_SESSIONS && ouvertes() > 0) break;
     await etape(i);
   }
 
