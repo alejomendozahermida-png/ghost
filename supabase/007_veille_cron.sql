@@ -5,7 +5,7 @@ create extension if not exists pg_net;
 select cron.unschedule('ghost-veille') where exists (select 1 from cron.job where jobname = 'ghost-veille');
 select cron.schedule('ghost-veille', '30 seconds', $$
   select net.http_post(
-    url := 'https://ghost-ebon-eight.vercel.app/api/veille',
+    url := 'https://ghost-the-task.vercel.app/api/veille',
     headers := jsonb_build_object('Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'ghost_cron_secret')),
     timeout_milliseconds := 60000
   );
