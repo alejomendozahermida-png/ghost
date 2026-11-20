@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             <Logo taille={30} decoratif />
             <span className="text-[17px] font-semibold tracking-tight text-nuit">Ghost</span>
           </Link>
-          <Navigation connecte={!!moi} />
+          <Navigation email={moi?.email ?? null} />
           {moi && <Notifications />}
           </div>
         </header>
