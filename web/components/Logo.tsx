@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export type Humeur = 'repos' | 'observe' | 'travaille' | 'joie' | 'souci' | 'discret'; // discret : yeux fermés (mot de passe)
 
@@ -14,6 +14,8 @@ interface LogoProps {
 
 const CORPS = 'M12 65 C18 58 24 48 27 37 C31 22 42 6 58 6 C76 6 88 20 88 39 C88 62 72 79 40 83 C43 78 42 70 36 67 C30 64 20 66 13 66.5 Z';
 const VISIERE = 'M52 21 H70 A13 13 0 0 1 83 34 V39 A13 13 0 0 1 70 52 H52 A13 13 0 0 1 39 39 V34 A13 13 0 0 1 52 21 Z';
+const SOUPLESSE = 0.2; // part de la distance rattrapée à chaque image : plus haut = plus vif
+
 // Chaque humeur : une animation du corps et une des yeux (classes définies dans globals.css).
 const CORPS_ANIM: Record<Humeur, string> = { repos: 'flotter', observe: 'flotter', travaille: 'besogner', joie: 'sautiller', souci: '', discret: 'flotter' };
 const YEUX_ANIM: Record<Humeur, string> = { repos: 'cligner', observe: 'scruter', travaille: 'affairer', joie: '', souci: '', discret: '' };
@@ -21,10 +23,15 @@ const YEUX_ANIM: Record<Humeur, string> = { repos: 'cligner', observe: 'scruter'
 // Le fantôme Ghost : la visière est un trou (le fond passe au travers), seuls les yeux restent pleins.
 export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouris = false, decoratif = false }: LogoProps) {
   const svg = useRef<SVGSVGElement>(null);
-  const [regard, setRegard] = useState({ x: 0, y: 0 });
+  const regard = useRef<SVGGElement>(null);
 
+  // Le regard suit le pointeur à chaque image de l'écran, sans repasser par React : la cible bouge avec la souris,
+  // les yeux la rattrapent en douceur (un peu de la distance restante à chaque image).
   useEffect(() => {
     if (!suivreSouris || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cible = { x: 0, y: 0 };
+    const pos = { x: 0, y: 0 };
+    let image = 0;
     const suivre = (e: PointerEvent) => {
       const b = svg.current?.getBoundingClientRect();
       if (!b) return;
@@ -32,10 +39,21 @@ export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouri
       const dy = e.clientY - (b.top + b.height * 0.4);
       const d = Math.hypot(dx, dy) || 1;
       const force = Math.min(1, d / 300);
-      setRegard({ x: (dx / d) * 5 * force, y: (dy / d) * 3 * force });
+      cible.x = (dx / d) * 5 * force;
+      cible.y = (dy / d) * 3 * force;
     };
-    addEventListener('pointermove', suivre);
-    return () => removeEventListener('pointermove', suivre);
+    const animer = () => {
+      pos.x += (cible.x - pos.x) * SOUPLESSE;
+      pos.y += (cible.y - pos.y) * SOUPLESSE;
+      if (regard.current) regard.current.style.transform = `translate(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px)`;
+      image = requestAnimationFrame(animer);
+    };
+    addEventListener('pointermove', suivre, { passive: true });
+    image = requestAnimationFrame(animer);
+    return () => {
+      removeEventListener('pointermove', suivre);
+      cancelAnimationFrame(image);
+    };
   }, [suivreSouris]);
 
   const yeux =
@@ -67,7 +85,7 @@ export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouri
       overflow="visible"
     >
       <path fill="#0b1d45" fillRule="evenodd" d={`${CORPS} ${VISIERE}`} />
-      <g style={{ transform: `translate(${regard.x}px, ${regard.y}px)`, transition: 'transform 0.25s cubic-bezier(0.16,1,0.3,1)' }}>
+      <g ref={regard} style={{ willChange: suivreSouris ? 'transform' : undefined }}>
         <g className={anime ? YEUX_ANIM[humeur] : undefined}>{yeux}</g>
       </g>
     </svg>
