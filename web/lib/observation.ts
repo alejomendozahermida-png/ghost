@@ -116,7 +116,7 @@ export async function detecter(observationId: string, finDeTache: boolean): Prom
 
 // Filet de sécurité propre à nos sites de test : la même annonce publiée sur 2 portails depuis le début de l'observation.
 // shortcut: ne vaut que pour nos 3 portails (leur API de lecture) ; ailleurs, seuls Holo et Qwen repèrent la tâche.
-const PORTAILS_TEST = ['a', 'b', 'c'].map((x) => `https://ghost-portail-${x}.vercel.app/api/annonces`);
+const PORTAILS_TEST = ['a', 'b', 'c'].map((x) => `https://portail-${x}-ghost.vercel.app/api/annonces`);
 async function filetPortails(observationId: string): Promise<{ nom: string; occurrences: number } | null> {
   const { data: obs } = await db.from('observations').select('cree_le').eq('id', observationId).single();
   const depuis = Date.parse(obs!.cree_le);

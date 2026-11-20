@@ -43,7 +43,7 @@ Il faut un ordinateur avec **Chrome ou Edge** (le partage d'écran n'existe pas 
 
 **Données de démonstration** (fictives) :
 - le tableau des mandats de l'Agence Belvédère : [Google Sheet, lecture par lien](https://docs.google.com/spreadsheets/d/1fjAPbVMct9mhLNKqZiDFUd3XaYImE6jIgVObAfdr8Tk/edit) ;
-- trois portails d'annonces sans API : [Portail A](https://ghost-portail-a.vercel.app/deposer), [Portail B](https://ghost-portail-b.vercel.app/nouvelle), [Portail C](https://ghost-portail-c.vercel.app/publier).
+- trois portails d'annonces sans API : [Portail A](https://portail-a-ghost.vercel.app/deposer), [Portail B](https://portail-b-ghost.vercel.app/nouvelle), [Portail C](https://portail-c-ghost.vercel.app/publier).
 
 **Le parcours** :
 1. Ouvrez https://ghost-the-task.vercel.app et créez un compte (e-mail et mot de passe d'au moins 8 caractères). Un court accueil explique le fonctionnement et propose d'activer les notifications.
