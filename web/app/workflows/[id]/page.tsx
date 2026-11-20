@@ -126,7 +126,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {w.procedure && (
           <>
             <h2 className={titre}>Ce que Ghost a compris</h2>
-            <ol className="verre mt-4 divide-y divide-trait/80 rounded-3xl px-6">
+            <ol className="verre carte-rayon mt-4 divide-y divide-trait/80 px-6">
               {w.procedure.etapes.map((e, i) => (
                 <li key={i} className="flex gap-6 py-5">
                   <span className="font-mono text-sm text-discret">{i + 1}</span>
@@ -158,7 +158,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {retour('regles')}
 
         {/* Les réglages restent repliés tant que rien ne manque : la fiche montre d'abord ce que fait l'agent. */}
-        <details open={!pret} className="reglages group mt-14 verre rounded-3xl">
+        <details open={!pret} className="reglages group mt-14 verre carte-rayon">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-[15px] font-semibold text-encre">
             Données et sites
             <span aria-hidden="true" className="text-discret transition-transform duration-300 group-open:rotate-45">+</span>
@@ -173,7 +173,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
               aria-checked={source === x.id}
               disabled={envoi}
               onClick={() => source !== x.id && enregistrer({ source: x.id }, 'source')}
-              className={`bouton rounded-2xl border px-4 py-3.5 text-left transition-colors disabled:opacity-60 ${source === x.id ? 'border-nuit bg-nuit-clair/80' : 'border-white/80 bg-white/55 hover:border-encre/30'}`}
+              className={`bouton rounded-xl border px-4 py-3.5 text-left transition-colors disabled:opacity-60 ${source === x.id ? 'border-nuit bg-nuit-clair/80' : 'border-white/80 bg-white/55 hover:border-encre/30'}`}
             >
               <span className="block text-[15px] font-semibold text-encre">{x.nom}</span>
               <span className="mt-0.5 block text-sm text-texte">{x.texte}</span>
@@ -190,7 +190,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {(source === 'sheet' || source === 'lecture') && <form className="mt-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); enregistrer({ sheet_url: sheet }, 'sheet'); }}>
           <label htmlFor="sheet" className="sr-only">Lien du Google Sheet</label>
           <input id="sheet" value={sheet} onChange={(e) => setSheet(e.target.value)} placeholder="Lien du Google Sheet, partagé en lecture" className={champ} />
-          <button disabled={envoi || sheet === (w.sheet_url ?? '')} className="bouton shrink-0 rounded-full border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'sheet' ? 'Enregistrement…' : 'Enregistrer'}</button>
+          <button disabled={envoi || sheet === (w.sheet_url ?? '')} className="bouton shrink-0 rounded-xl border border-trait bg-surface px-5 text-sm font-medium disabled:opacity-40">{enCours === 'sheet' ? 'Enregistrement…' : 'Enregistrer'}</button>
         </form>}
         {retour('sheet')}
 
@@ -205,8 +205,8 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           ))}
         </ul>
         <div className="mt-4 flex gap-3">
-          <button onClick={() => setSites([...sites, { site: `Site ${sites.length + 1}`, url: '' }])} className="bouton rounded-full border border-trait bg-surface px-5 py-3 text-sm font-medium">Ajouter un site</button>
-          <button disabled={envoi} onClick={() => enregistrer({ destinations: sites }, 'sites')} className="bouton rounded-full bg-nuit px-5 py-3 text-sm font-medium text-white disabled:opacity-40">{enCours === 'sites' ? 'Enregistrement…' : 'Enregistrer les sites'}</button>
+          <button onClick={() => setSites([...sites, { site: `Site ${sites.length + 1}`, url: '' }])} className="bouton rounded-xl border border-trait bg-surface px-5 py-3 text-sm font-medium">Ajouter un site</button>
+          <button disabled={envoi} onClick={() => enregistrer({ destinations: sites }, 'sites')} className="bouton rounded-xl bg-nuit px-5 py-3 text-sm font-medium text-white disabled:opacity-40">{enCours === 'sites' ? 'Enregistrement…' : 'Enregistrer les sites'}</button>
         </div>
         {retour('sites')}
           </div>
@@ -215,7 +215,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
       </article>
 
       <aside className="md:sticky md:top-10 md:self-start">
-        <div className="monter verre rounded-3xl p-8 [animation-delay:200ms]">
+        <div className="carte verre monter [animation-delay:200ms]">
           <p className="text-sm text-discret">Temps par ligne, mesuré</p>
           <div className="mt-5 space-y-4">
             {[['À la main', w.gain.manuel_s, 'bg-encre/25'], ['Avec Ghost', w.gain.agent_s, 'bg-nuit']].map(([nom, s, couleur]) => (
@@ -230,16 +230,16 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           <p className="mt-4 text-sm text-discret">{w.gain.executions} exécution(s) réussie(s).</p>
 
           {w.en_cours && (
-            <Link href={`/workflows/${w.id}/lancer?execution=${w.en_cours}`} className="bouton mt-8 flex items-center gap-3 rounded-2xl bg-nuit-clair px-4 py-3 text-sm font-semibold text-nuit">
+            <Link href={`/workflows/${w.id}/lancer?execution=${w.en_cours}`} className="bouton mt-8 flex items-center gap-3 rounded-xl bg-nuit-clair px-4 py-3 text-sm font-semibold text-nuit">
               <span aria-hidden="true" className="pulse-doux h-2 w-2 rounded-full bg-nuit" />L’agent travaille en ce moment : suivre
             </Link>
           )}
           {pret ? (
-            <Link href={`/workflows/${w.id}/lancer`} className="bouton mt-8 block rounded-full bg-nuit py-3.5 text-center text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)]">
+            <Link href={`/workflows/${w.id}/lancer`} className="bouton mt-8 block rounded-xl bg-nuit py-3.5 text-center text-[15px] font-medium text-white hover:shadow-[0_10px_30px_-10px_rgb(11_29_69/0.6)]">
               Lancer l’agent
             </Link>
           ) : (
-            <p className="mt-8 rounded-2xl bg-nuit-clair p-4 text-sm text-nuit">Pour créer l’agent, il manque {manque.join(' et ') || 'une information'}.</p>
+            <p className="mt-8 rounded-xl bg-nuit-clair p-4 text-sm text-nuit">Pour créer l’agent, il manque {manque.join(' et ') || 'une information'}.</p>
           )}
 
           {pret && <details className="reglages group mt-6 border-t border-trait pt-5">

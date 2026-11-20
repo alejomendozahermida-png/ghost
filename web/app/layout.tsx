@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         </a>
         {/* En-tête flottant en verre : il reste en haut et laisse passer la page qui défile dessous. */}
         <header className="sticky top-3 z-30 mx-auto mt-3 max-w-5xl px-4">
-          <div className="verre relative flex items-center justify-between rounded-full py-2 pl-5 pr-2.5">
+          <div className="verre relative flex items-center justify-between rounded-full py-2 pl-5 pr-2">
           <Link href="/" className="flex items-center gap-2.5 rounded-md focus-visible:outline-2 focus-visible:outline-nuit">
             <Logo taille={30} decoratif />
             <span className="text-[17px] font-semibold tracking-tight text-nuit">Ghost</span>

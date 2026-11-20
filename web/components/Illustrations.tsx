@@ -2,12 +2,12 @@
 
 export function FenetreObservee() {
   return (
-    <div className="relative overflow-hidden verre rounded-2xl p-6">
+    <div className="carte relative overflow-hidden verre">
       <div className="h-3 w-1/3 rounded bg-encre/10" />
       {[0.9, 0.7, 0.8].map((w, i) => (
-        <div key={i} className="mt-4 h-8 rounded-lg border border-trait" style={{ width: `${w * 100}%` }} />
+        <div key={i} className="mt-4 h-8 rounded-xl border border-trait" style={{ width: `${w * 100}%` }} />
       ))}
-      <div className="mt-5 h-9 w-28 rounded-full bg-nuit/85" />
+      <div className="mt-5 h-9 w-28 rounded-xl bg-nuit/85" />
       <div className="balayer absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-transparent via-nuit/10 to-transparent" />
     </div>
   );

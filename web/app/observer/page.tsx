@@ -325,10 +325,10 @@ export default function Observer() {
               {[0.9, 0.75, 0.85, 0.6].map((w, i) => (
                 <div key={i} className="space-y-2">
                   <div className="h-2.5 w-24 rounded bg-encre/10" />
-                  <div className="h-9 rounded-lg border border-trait" style={{ width: `${w * 100}%` }} />
+                  <div className="h-9 rounded-xl border border-trait" style={{ width: `${w * 100}%` }} />
                 </div>
               ))}
-              <div className="h-10 w-32 rounded-full bg-nuit/85" />
+              <div className="h-10 w-32 rounded-xl bg-nuit/85" />
               <div className="balayer absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent via-nuit/10 to-transparent" />
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function Observer() {
         {/* Le fantôme au centre : grand, avec un halo qui pulse tant qu'il observe. Remplacé par ce qu'il a compris dès qu'une tâche est repérée. */}
         <aside className="lg:sticky lg:top-10">
           {repere ? (
-            <div role="status" className="verre-nuit monter rounded-3xl p-8">
+            <div role="status" className="carte verre-nuit monter">
               <Logo taille={64} anime humeur="joie" couleur="#ffffff" decoratif />
               <p className="mt-5 text-2xl font-bold leading-snug tracking-tight first-letter:uppercase">{repere.nom}</p>
               {repere.resume && <p className="mt-3 text-[15px] leading-relaxed text-white/85">{repere.resume}</p>}
@@ -377,12 +377,12 @@ export default function Observer() {
                   ))}
                 </ol>
               ) : null}
-              <Link href={`/workflows/${repere.id}`} className="bouton mt-7 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-nuit">
+              <Link href={`/workflows/${repere.id}`} className="bouton mt-7 inline-flex rounded-xl bg-white px-6 py-3 text-sm font-semibold text-nuit">
                 Confier cette tâche à un agent
               </Link>
             </div>
           ) : (
-            <div className="relative grid place-items-center overflow-hidden verre rounded-[2rem] py-16">
+            <div className="relative grid place-items-center overflow-hidden verre carte-rayon py-16">
               <div aria-hidden="true" className="absolute inset-0 grid place-items-center">
                 {etat === 'en_cours' && [0, 1, 2].map((i) => (
                   <span key={i} className="radar absolute h-56 w-56 rounded-full border-2 border-nuit/25" style={{ animationDelay: `${i * 0.9}s` }} />

@@ -92,7 +92,7 @@ export default function Connexion() {
           </div>
 
           {/* Carte en verre dépoli : le halo du fantôme passe au travers. */}
-          <div key={message?.erreur ? message.texte : 'carte'} className={`monter mt-10 w-full rounded-3xl border border-white/15 bg-white/[0.07] p-8 shadow-[0_40px_90px_-30px_rgb(0_0_0/0.7)] backdrop-blur-xl ${message?.erreur ? 'secouer' : ''}`}>
+          <div key={message?.erreur ? message.texte : 'carte'} className={`carte monter mt-10 w-full border border-white/15 bg-white/[0.07] shadow-[0_40px_90px_-30px_rgb(0_0_0/0.7)] backdrop-blur-xl ${message?.erreur ? 'secouer' : ''}`}>
             <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em]">{titre}</h1>
             <p className="mt-2 text-[15px] leading-relaxed text-white/70">{sousTitre}</p>
 
@@ -141,7 +141,7 @@ export default function Connexion() {
                 </ul>
               </div>
 
-              <button disabled={envoi || reussi || !emailOk || !mdpOk} className="bouton w-full rounded-full bg-white py-3.5 text-[15px] font-semibold text-nuit transition hover:shadow-[0_12px_40px_-10px_rgb(255_255_255/0.5)] disabled:opacity-40">
+              <button disabled={envoi || reussi || !emailOk || !mdpOk} className="bouton w-full rounded-xl bg-white py-3.5 text-[15px] font-semibold text-nuit transition hover:shadow-[0_12px_40px_-10px_rgb(255_255_255/0.5)] disabled:opacity-40">
                 {reussi ? 'C’est parti…' : envoi ? 'Un instant…' : mode === 'connexion' ? 'Se connecter' : 'Créer le compte'}
               </button>
             </form>

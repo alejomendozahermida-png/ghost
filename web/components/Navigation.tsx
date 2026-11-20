@@ -45,7 +45,7 @@ export function Navigation({ connecte }: { connecte: boolean }) {
         {ouvert ? 'Fermer' : 'Menu'}
       </button>
       {ouvert && (
-        <div id="menu-mobile" className="monter verre absolute inset-x-0 top-[4.5rem] z-20 flex flex-col rounded-2xl px-6 py-3 md:hidden">
+        <div id="menu-mobile" className="monter verre absolute inset-x-0 top-[4.5rem] z-20 carte-rayon flex flex-col px-6 py-3 md:hidden">
           {liens}
           {sortie}
         </div>

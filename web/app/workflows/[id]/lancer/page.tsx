@@ -184,7 +184,7 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
 
         {source === 'formulaire' && (
           <div className="monter mt-10 space-y-8 [animation-delay:160ms]">
-            <div className="verre rounded-2xl p-6">
+            <div className="carte verre">
               <label htmlFor="texte" className="text-sm font-semibold text-encre">Remplir à partir d’un texte</label>
               <textarea
                 id="texte"
@@ -194,7 +194,7 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
                 placeholder="Ex. : appartement 3 pièces rue des Lilas à Lyon, 68 m², 315 000 €"
                 className={`${champ} mt-2 resize-y`}
               />
-              <button onClick={remplir} disabled={!texte.trim() || lecture} className="bouton mt-3 rounded-full border border-trait bg-surface px-5 py-2.5 text-sm font-semibold hover:border-encre/30 disabled:opacity-40">
+              <button onClick={remplir} disabled={!texte.trim() || lecture} className="bouton mt-3 rounded-xl border border-trait bg-surface px-5 py-2.5 text-sm font-semibold hover:border-encre/30 disabled:opacity-40">
                 {lecture ? 'Lecture…' : 'Remplir les champs'}
               </button>
             </div>

@@ -88,7 +88,7 @@ export function Declencheurs({ w, envoi, enregistrer, retour }: Props) {
             )}
             <label htmlFor="heure" className="sr-only">Heure (Paris)</label>
             <input id="heure" type="time" required value={heure} onChange={(e) => setHeure(e.target.value)} className={champ} />
-            <button disabled={envoi} className="bouton rounded-full border border-trait bg-surface px-4 py-2.5 text-sm font-semibold hover:border-encre/30 disabled:opacity-40">Planifier</button>
+            <button disabled={envoi} className="bouton rounded-xl border border-trait bg-surface px-4 py-2.5 text-sm font-semibold hover:border-encre/30 disabled:opacity-40">Planifier</button>
           </form>
         )}
         {retour('planif')}
@@ -102,7 +102,7 @@ export function Declencheurs({ w, envoi, enregistrer, retour }: Props) {
             <div className="mt-3 flex gap-2">
               <label htmlFor="lien" className="sr-only">Lien de déclenchement</label>
               <input id="lien" readOnly value={lien} onFocus={(e) => e.target.select()} className={`${champ} min-w-0 flex-1 font-mono text-xs`} />
-              <button onClick={() => copier(lien, 'lien')} className="bouton shrink-0 rounded-full border border-trait bg-surface px-4 text-sm font-semibold hover:border-encre/30">
+              <button onClick={() => copier(lien, 'lien')} className="bouton shrink-0 rounded-xl border border-trait bg-surface px-4 text-sm font-semibold hover:border-encre/30">
                 {copie === 'lien' ? 'Copié' : 'Copier'}
               </button>
             </div>
@@ -119,7 +119,7 @@ export function Declencheurs({ w, envoi, enregistrer, retour }: Props) {
             <button onClick={() => enregistrer({ webhook: 'retirer' }, 'lien')} disabled={envoi} className="lien mt-3 py-2 text-sm text-alerte">Révoquer le lien</button>
           </>
         ) : (
-          <button onClick={() => enregistrer({ webhook: 'creer' }, 'lien')} disabled={envoi} className="bouton mt-3 rounded-full border border-trait bg-surface px-4 py-2.5 text-sm font-semibold hover:border-encre/30 disabled:opacity-40">
+          <button onClick={() => enregistrer({ webhook: 'creer' }, 'lien')} disabled={envoi} className="bouton mt-3 rounded-xl border border-trait bg-surface px-4 py-2.5 text-sm font-semibold hover:border-encre/30 disabled:opacity-40">
             Créer un lien
           </button>
         )}

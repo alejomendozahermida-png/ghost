@@ -101,7 +101,7 @@ export default function MesAcces() {
       <div className="mt-12 max-w-3xl">
         <div>
           {ouvert && (
-            <form onSubmit={ajouter} className="monter mb-12 grid gap-5 verre rounded-3xl p-8 md:grid-cols-2">
+            <form onSubmit={ajouter} className="carte verre monter mb-12 grid gap-5 md:grid-cols-2">
               <p className="text-lg font-semibold tracking-tight text-encre md:col-span-2">Nouvelle plateforme</p>
               {!choix && (
                 <div className="space-y-5 md:col-span-2">
@@ -115,7 +115,7 @@ export default function MesAcces() {
                         key={m.id}
                         type="button"
                         onClick={() => { setChoix(m); setForm({ ...form, plateforme: m.nom, url: m.url }); }}
-                        className="bouton flex items-center gap-3 rounded-2xl border border-white/80 bg-white/55 px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-nuit/30 hover:shadow-[0_10px_24px_-16px_rgb(11_29_69/0.5)]"
+                        className="bouton flex items-center gap-3 rounded-xl border border-white/80 bg-white/55 px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-nuit/30 hover:shadow-[0_10px_24px_-16px_rgb(11_29_69/0.5)]"
                       >
                         <Icone modele={m} nom={m.nom} />
                         <span className="text-[15px] font-semibold text-encre">{m.nom}</span>
@@ -125,7 +125,7 @@ export default function MesAcces() {
                   <button
                     type="button"
                     onClick={() => { setChoix('autre'); setForm({ ...form, plateforme: recherche.trim(), url: '' }); }}
-                    className="bouton flex items-center gap-3 rounded-2xl border border-dashed border-champ/70 px-3 py-2.5 text-left hover:border-nuit/30"
+                    className="bouton flex items-center gap-3 rounded-xl border border-dashed border-champ/70 px-3 py-2.5 text-left hover:border-nuit/30"
                   >
                     <Icone nom="+" />
                     <span className="text-[15px] font-semibold text-encre">Autre site</span>
@@ -168,8 +168,8 @@ export default function MesAcces() {
               )}
               </>}
               <div className="flex flex-wrap gap-3 md:col-span-2">
-                <button disabled={envoi || !choix} className={boutonPrincipal}>{envoi ? 'Enregistrement…' : 'Enregistrer dans le coffre-fort'}</button>
-                <button type="button" onClick={() => { setOuvert(false); setForm(VIDE); setChoix(null); setRecherche(''); setErreur(null); }} className="bouton rounded-full px-5 py-3 text-sm font-medium text-texte">Annuler</button>
+                <button disabled={envoi || !choix} className={`${boutonPrincipal} rounded-xl!`}>{envoi ? 'Enregistrement…' : 'Enregistrer dans le coffre-fort'}</button>
+                <button type="button" onClick={() => { setOuvert(false); setForm(VIDE); setChoix(null); setRecherche(''); setErreur(null); }} className="bouton rounded-xl px-5 py-3 text-sm font-medium text-texte">Annuler</button>
               </div>
               {erreur && <p role="alert" className="text-[15px] text-alerte md:col-span-2">{erreur}</p>}
             </form>
@@ -183,7 +183,7 @@ export default function MesAcces() {
           ) : liste.length === 0 ? (
             <p className="text-[16px] text-texte">Aucun accès pour l’instant. Ajoutez-en un quand un site demande de se connecter.</p>
           ) : (
-            <ul className="verre divide-y divide-trait/80 rounded-3xl px-6">
+            <ul className="verre carte-rayon divide-y divide-trait/80 px-6">
               {liste.map((a, i) => (
                 <li key={a.id} className="monter flex flex-wrap items-center gap-5 py-4" style={{ animationDelay: `${i * 60}ms` }}>
                   <Icone modele={modeleDe(a.url)} nom={a.plateforme} />
@@ -194,12 +194,12 @@ export default function MesAcces() {
                   {aConfirmer === a.id ? (
                     <div role="group" aria-label={`Retirer l’accès à ${a.plateforme}`} className="flex flex-wrap items-center gap-2">
                       <span className="text-sm text-texte">Effacer du coffre-fort ?</span>
-                      <button onClick={() => retirer(a)} className="bouton rounded-full bg-alerte px-4 py-2.5 text-sm font-medium text-white">Retirer</button>
-                      <button onClick={() => setAConfirmer(null)} className="bouton rounded-full px-4 py-2.5 text-sm text-texte">Annuler</button>
+                      <button onClick={() => retirer(a)} className="bouton rounded-xl bg-alerte px-4 py-2.5 text-sm font-medium text-white">Retirer</button>
+                      <button onClick={() => setAConfirmer(null)} className="bouton rounded-xl px-4 py-2.5 text-sm text-texte">Annuler</button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setAConfirmer(a.id)} className="bouton rounded-full px-4 py-2.5 text-sm text-texte transition-colors hover:bg-alerte-clair hover:text-alerte">Retirer</button>
+                      <button onClick={() => setAConfirmer(a.id)} className="bouton rounded-xl px-4 py-2.5 text-sm text-texte transition-colors hover:bg-alerte-clair hover:text-alerte">Retirer</button>
                     </div>
                   )}
                 </li>
