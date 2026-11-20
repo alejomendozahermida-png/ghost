@@ -165,6 +165,7 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
   const valeurs = Object.entries(ligne.valeurs).filter(([c]) => !PHOTO.test(c));
   const vides = valeurs.filter(([, v]) => !v.trim()).map(([c]) => c);
   const textes = valeurs.filter(([, v]) => v && !estNombre(v) && v.length <= 60);
+  const longs = valeurs.filter(([, v]) => v && !estNombre(v) && v.length > 60).map(([c]) => c);
   // Tâche sans données : on la refait telle qu'observée.
   if (!valeurs.length) return [`Fais la tâche « ${tache} » sur ce(s) site(s), en suivant les étapes de ta Skill :`, ...sites.map((s) => `- ${s.site} : ${s.url}`)].join('\n');
   return [
@@ -174,7 +175,8 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     `Valeurs :`, ...valeurs.map(([c, v]) => `- ${c} : « ${v} »`),
     vides.length ? `Valeurs vides dans cette ligne : ${vides.join(', ')}.` : '',
     ...textes.map(([c, v]) => `${c} s'épelle lettre par lettre : ${epeler(v)}.`),
-    ecarts.length ? `Une relecture a trouvé des erreurs à corriger : ${ecarts.join(' ; ')}. Publie de nouveau avec les valeurs exactes.` : '',
+    longs.length ? `${longs.join(', ')} : tape le texte mot pour mot, avec la même ponctuation. Ne corrige, n'accorde, ne raccourcis et ne remplace AUCUN mot, même s'il te semble faux (garde « commerces », n'écris pas « commerciaux »). Relis-le avant de valider.` : '',
+    ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : '',
   ].filter(Boolean).join('\n');
 }
 
@@ -247,11 +249,14 @@ export async function avancer(id: string): Promise<Execution> {
 
     // Compare ce que montrent les pages à la ligne, jamais ce que l'agent a déclaré.
     const conclure = async (pages: { site: string; trouve: boolean; verifie: (c: string) => boolean }[]) => {
-      // shortcut: une colonne qu'aucune page ne montre (identifiant, classe énergie) n'est pas comparée ; une valeur fausse sur TOUTES les pages passerait donc, à revoir avec la liste des champs affichés.
       // Une valeur de 1 à 3 lettres (« C ») se retrouve n'importe où dans une page (« Portail C ») : on ne peut pas la vérifier.
       const verifiable = (v: string) => !!v.trim() && (estNombre(v) || v.trim().length > 3);
-      // La colonne identifiant d'un Sheet (sa valeur est la clé de la ligne) n'est pas affichée sur les sites.
-      const affichees = colonnes.filter((c) => ligne.valeurs[c] !== ligne.cle).filter((c) => verifiable(ligne.valeurs[c] ?? '') && pages.some((x) => x.trouve && x.verifie(c)));
+      // Chaque champ que la tâche remplit est vérifié sur chaque page, même si aucune ne le montre à l'identique
+      // (sinon un texte modifié partout passait). Les autres colonnes (identifiant, classe énergie) le sont seulement si une page les affiche.
+      const remplies = new Set((w.procedure?.champs ?? []).map((c) => c.colonne));
+      const affichees = colonnes
+        .filter((c) => ligne.valeurs[c] !== ligne.cle && verifiable(ligne.valeurs[c] ?? ''))
+        .filter((c) => remplies.has(c) || pages.some((x) => x.trouve && x.verifie(c)));
       const parSite: Record<string, Etat> = {};
       const ecarts: string[] = [];
       for (const d of destinations) {
@@ -263,12 +268,18 @@ export async function avancer(id: string): Promise<Execution> {
         parSite[d.site] = faux.length ? 'faux' : 'ok';
       }
       e.etats = parSite;
-      const restants = destinations.filter((d) => parSite[d.site] !== 'ok');
-      if (!restants.length) terminer({ cle: ligne.cle, statut: 'publie', portails: parSite });
-      else if ((e.relances ?? 0) < MAX_RELANCES) {
+      // Relancer ne sert que là où rien n'a été publié. Une valeur fausse est signalée sans republier :
+      // un nouvel envoi créerait une seconde annonce (les sites ne se modifient pas tous), et l'agent ne supprime rien.
+      const absents = destinations.filter((d) => parSite[d.site] === 'absent');
+      const fausses = destinations.filter((d) => parSite[d.site] === 'faux');
+      if (!absents.length && !fausses.length) terminer({ cle: ligne.cle, statut: 'publie', portails: parSite });
+      else if (absents.length && !fausses.length && (e.relances ?? 0) < MAX_RELANCES) {
         e.relances = (e.relances ?? 0) + 1;
-        await lancerAgir(restants, ecarts);
-      } else terminer({ cle: ligne.cle, statut: 'echec', portails: parSite, raison: ecarts.join(' ; ') || 'Résultat absent.' });
+        await lancerAgir(absents, []);
+      } else {
+        const manquants = absents.map((d) => `${d.site} : aucune annonce trouvée`);
+        terminer({ cle: ligne.cle, statut: 'echec', portails: parSite, raison: [...ecarts, ...manquants].join(' ; ') || 'Résultat absent.' });
+      }
     };
 
     if (!e.phase) {

@@ -18,10 +18,12 @@ export function texteDePage(html: string): string {
 const estNombre = (v: string) => /^[\d\s.,€]+$/.test(v.trim());
 
 // « 238000 » se trouve dans « 238 000 € » ; un texte doit apparaître tel quel (espaces normalisés).
+const normal = (t: string) => t.replace(/[\u00a0\u202f]/g, ' ').replace(/[’‘ʼ]/g, "'").replace(/\s+/g, ' ').trim();
+
 export function trouveDans(texte: string, valeur: string): boolean {
-  const v = valeur.replace(/\s+/g, ' ').trim();
+  const v = normal(valeur);
   if (!v) return true;
-  if (!estNombre(v)) return texte.includes(v);
+  if (!estNombre(v)) return normal(texte).includes(v);
   const chiffres = v.replace(/\D/g, '');
   return new RegExp(`(^|\\D)${[...chiffres].join('[\\s.,]?')}(\\D|$)`).test(texte);
 }
