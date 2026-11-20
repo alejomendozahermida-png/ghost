@@ -197,3 +197,5 @@ Projet réalisé par l'équipe 14 du hackathon « Build The Future » (Eugenia �
 | Vladimir Pilioua | Portails de test sans API |
 | Henriquet | Données fictives et photos |
 | Binta Kande | Pitch, positionnement, go-to-market et vidéo |
+| Assel | Pilotage de l'équipe, planning et documents du hackathon |
+| Omar | Détection des tâches répétées et floutage (première version) |
