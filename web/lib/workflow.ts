@@ -190,8 +190,10 @@ export async function preparer(id: string): Promise<Workflow> {
 
   // Garde-fou : les actions observées disent où l'on écrit. Si Qwen a inversé source et destination, on suit les actions.
   const ECRITURES = ['type', 'select', 'check', 'submit'];
-  const ecrits = [...new Set((etapes ?? []).filter((e) => e.site && ECRITURES.includes(e.action ?? '')).map((e) => e.site!))];
-  if (!w.destinations && ecrits.length && !procedure.destinations.some((d) => ecrits.includes(d.site))) {
+  const cle = (e: { site: string | null; url: string | null }) => (e.url ? base(e.url) : e.site ?? '');
+  const ecrits = [...new Set((etapes ?? []).filter((e) => (e.site || e.url) && ECRITURES.includes(e.action ?? '')).map(cle))];
+  const viseEcrit = (d: Destination) => ecrits.includes(d.url ? base(d.url) : d.site) || ecrits.includes(d.site);
+  if (!w.destinations && ecrits.length && !procedure.destinations.some(viseEcrit)) {
     const premiere = (site: string, actions: string[]) => etapes!.find((e) => e.site === site && actions.includes(e.action ?? ''));
     const lu = procedure.destinations.map((d) => d.site).find((site) => !ecrits.includes(site));
     procedure = {

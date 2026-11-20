@@ -45,6 +45,8 @@ export async function lireCapture(observationId: string, image: string, barre?: 
     barre ? holo<{ url: string | null }>(ADRESSE, barre).catch(() => null) : Promise.resolve(null),
   ]);
   if (l.ecran_connexion) return null;
+  // L'onglet de Ghost lui-même n'est pas du travail : il fausserait le découpage en tâches.
+  if (/ghost-the-task\.vercel\.app|localhost:3000/.test(adresse?.url ?? l.url ?? '') || /^ghost$/i.test(l.site?.trim() ?? '')) return null;
 
   const { data: derniere } = await db
     .from('etapes')
@@ -81,6 +83,14 @@ export async function lireCapture(observationId: string, image: string, barre?: 
   return data && { ...data, nouvelle_tache: !!derniere && tache > derniere.tache };
 }
 
+// Tâches sans fin visible (recopier d'un tableau à l'autre) : on cherche la répétition dans le flux des étapes lui-même.
+const REPETITION = `Voici, dans l'ordre, les étapes observées sur le poste d'une personne (site · écran · action · champ · valeur) :
+{etapes}
+La personne répète-t-elle la même suite d'actions au moins 2 fois, sur des valeurs différentes (une ligne, un client, un ticket après l'autre) ?
+Rends UNIQUEMENT ce JSON : {"repetee": true ou false, "nom": "nom court de la tâche, à l'infinitif (ex. Recopier le téléphone des tickets dans le fichier clients)", "occurrences": nombre de répétitions vues}`;
+const ETAPES_AVANT_FLUX = 8; // assez d'étapes pour deux passages
+const PAS_FLUX = 3; // Qwen n'est rappelé que toutes les 3 nouvelles étapes
+
 const MEME = `Voici des tâches observées sur le poste d'une personne, chacune sous forme d'étapes (site · écran · action · champ).
 La DERNIÈRE tâche est-elle la même tâche qu'une des précédentes, même faite sur un autre site avec d'autres libellés ?
 {taches}
@@ -102,6 +112,12 @@ export async function detecter(observationId: string, finDeTache: boolean): Prom
       .join('\n\n');
     const r = await raisonner<{ meme_tache: boolean; nom: string; occurrences: number }>(MEME.replace('{taches}', texte)).catch(() => null);
     if (r?.meme_tache) trouve = { nom: r.nom, occurrences: Math.max(2, r.occurrences) };
+  }
+  const nb = etapes?.length ?? 0;
+  if (!trouve && nb >= ETAPES_AVANT_FLUX && nb % PAS_FLUX === 0) {
+    const texte = (etapes ?? []).slice(-40).map((e) => `- ${e.site} · ${e.ecran} · ${e.action} · ${e.champ ?? ''} · ${e.valeur ?? ''}`).join('\n');
+    const r = await raisonner<{ repetee: boolean; nom: string; occurrences: number }>(REPETITION.replace('{etapes}', texte)).catch(() => null);
+    if (r?.repetee) trouve = { nom: r.nom, occurrences: Math.max(2, r.occurrences) };
   }
   trouve ??= await filetPortails(observationId);
   if (!trouve) return null;
