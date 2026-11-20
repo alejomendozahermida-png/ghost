@@ -25,7 +25,10 @@ export default function Connexion() {
     setEnvoi(false);
     if (error) return setMessage({ texte: error.message === 'Invalid login credentials' ? 'E-mail ou mot de passe incorrect.' : error.message, erreur: true });
     if (!data.session) return setMessage({ texte: 'Compte créé. Ouvrez le lien reçu par e-mail pour l’activer, puis connectez-vous.', erreur: false });
-    window.location.href = new URLSearchParams(window.location.search).get('suite') ?? '/observer';
+    const suite = new URLSearchParams(window.location.search).get('suite') ?? '/observer';
+    // Premier passage : l'accueil d'abord, puis la page demandée.
+    const profil = await fetch('/api/profil').then((r) => r.json()).catch(() => null);
+    window.location.href = profil && !profil.onboarding_fini ? `/bienvenue?suite=${encodeURIComponent(suite)}` : suite;
   }
 
   return (
