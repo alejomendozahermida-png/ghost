@@ -176,6 +176,9 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     vides.length ? `Valeurs vides dans cette ligne : ${vides.join(', ')}.` : '',
     ...textes.map(([c, v]) => `${c} s'épelle lettre par lettre : ${epeler(v)}.`),
     longs.length ? `${longs.join(', ')} : tape le texte mot pour mot, avec la même ponctuation. Ne corrige, n'accorde, ne raccourcis et ne remplace AUCUN mot, même s'il te semble faux (garde « commerces », n'écris pas « commerciaux »). Relis-le avant de valider.` : '',
+    // Erreurs vues en vrai : « Apartment » pour « Appartement », « idéal » pour « Idéal ». La relecture après publication les voit, mais trop tard.
+    `Garde chaque majuscule, chaque accent et la langue d'origine : ne traduis rien en anglais (« Appartement », jamais « Apartment »).`,
+    `Avant de cliquer sur le bouton qui publie, relis chaque champ rempli du formulaire et compare-le lettre par lettre avec les valeurs ci-dessus. S'il y a la moindre différence, corrige le champ, puis relis encore. Ne publie qu'un formulaire identique.`,
     ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : '',
   ].filter(Boolean).join('\n');
 }

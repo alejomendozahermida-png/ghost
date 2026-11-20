@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { portailCourant } from '@/lib/portail';
 import { lireAnnonce, urlPhoto, modeLocal } from '@/lib/store';
-import { illustration, offres, photo, srcset } from '@/lib/catalogue';
+import { offres } from '@/lib/catalogue';
 import Fiche from '../../biens/Fiche';
 
 export const dynamic = 'force-dynamic';
@@ -32,9 +32,8 @@ export default async function Annonce({ params, searchParams }: Props) {
 
   const vraiePhoto = p.code === 'C' ? await urlPhoto(id) : null;
   const titre = a.titre ?? 'Annonce';
-  const images = vraiePhoto
-    ? [{ src: vraiePhoto, alt: titre }]
-    : [{ src: photo(illustration(id), 960), srcSet: srcset(illustration(id)), alt: titre }];
+  // Pas de photo inventée : une annonce publiée sans photo s'affiche sans photo.
+  const images = vraiePhoto ? [{ src: vraiePhoto, alt: titre }] : [];
   const catalogue = offres(p.code);
   const similaires = [...catalogue.filter((o) => o.ville === a.ville), ...catalogue.filter((o) => o.ville !== a.ville && o.projet === 'vente')].slice(0, 3);
   const pieces = /\bT(\d)\b|(\d) pièces?/i.exec(titre);
@@ -52,7 +51,6 @@ export default async function Annonce({ params, searchParams }: Props) {
         ville: a.ville,
         description: a.description,
         images,
-        mentionPhoto: vraiePhoto ? undefined : "Photo d'illustration",
         publieeLe: a.cree_le,
         confirmation: !!publiee,
         similaires,

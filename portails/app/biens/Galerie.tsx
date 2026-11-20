@@ -22,7 +22,7 @@ export default function Galerie({ images, mention }: { images: Image[]; mention?
             onLoad={(e) => { if (e.currentTarget.naturalWidth < 40) setEchec((x) => ({ ...x, [i]: true })); }}
           />
         ) : (
-          <div className="galerie-vide">Photo indisponible</div>
+          <div className="galerie-vide">Annonce sans photo</div>
         )}
         {images.length > 1 && <span className="galerie-compteur">{i + 1} / {images.length}</span>}
         {mention && <span className="galerie-mention">{mention}</span>}

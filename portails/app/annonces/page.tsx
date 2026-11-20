@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { portailCourant, VILLES } from '@/lib/portail';
 import { listerAnnonces, idsAvecPhoto, urlsPhotos } from '@/lib/store';
-import { offres, illustration, photo, euros as eur } from '@/lib/catalogue';
+import { offres, euros as eur } from '@/lib/catalogue';
 import CarteOffre from '../biens/CarteOffre';
 import EnDirect from './EnDirect';
 import Vignette from './Vignette';
@@ -68,7 +68,7 @@ export default async function AnnoncesPubliees({ searchParams }: Props) {
           <div className="grille">
             {annonces.map((a) => {
               const nouveau = maintenant - new Date(a.cree_le).getTime() < NOUVEAU_MS;
-              const img = p.code === 'C' ? vignettes[a.id] : photo(illustration(a.id), 500);
+              const img = p.code === 'C' ? vignettes[a.id] : undefined; // sites A et B : pas de photo envoyée, donc aucune affichée
               return (
                 <article className={`annonce${nouveau ? ' est-nouveau' : ''}`} key={a.id} data-annonce-id={a.id}>
                   <Link href={`/annonces/${a.id}`} className="annonce-lien">
