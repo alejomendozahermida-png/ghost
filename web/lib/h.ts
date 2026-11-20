@@ -38,7 +38,7 @@ export function demarrerSession(s: Session): Promise<{ id: string }> {
     body: JSON.stringify({
       agent: s.agent,
       messages: s.message,
-      max_steps: 35 * s.sites,
+      max_steps: 45 * s.sites, // 35 ne laissait aucune marge pour retaper un champ avant de publier
       max_time_s: 150 * s.sites,
       idle_timeout_s: s.attenteCorrection ? 120 : 10,
       timezone: 'Europe/Paris',

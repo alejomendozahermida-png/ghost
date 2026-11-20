@@ -150,6 +150,7 @@ export async function nouvellesLignes(workflowId: string, lignes: Ligne[]): Prom
 }
 
 const epeler = (t: string) => t.split(/\s+/).map((m) => [...m].join('-')).join(' / ');
+const A_COURT = /budget|épuis|nombre (maximum )?d'étapes|max.?steps|temps (imparti|écoulé)|time.?out/i; // l'agent s'est arrêté faute de moyens
 const estNombre = (v: string) => /^[\d\s.,€]+$/.test(v.trim());
 const norme = (v: string) => v.replace(/\s+/g, ' ').trim();
 
@@ -178,7 +179,8 @@ function messageAgir(ligne: Ligne, sites: Destination[], tache: string, ecarts: 
     longs.length ? `${longs.join(', ')} : tape le texte mot pour mot, avec la même ponctuation. Ne corrige, n'accorde, ne raccourcis et ne remplace AUCUN mot, même s'il te semble faux (garde « commerces », n'écris pas « commerciaux »). Relis-le avant de valider.` : '',
     // Erreurs vues en vrai : « Apartment » pour « Appartement », « idéal » pour « Idéal ». La relecture après publication les voit, mais trop tard.
     `Garde chaque majuscule, chaque accent et la langue d'origine : ne traduis rien en anglais (« Appartement », jamais « Apartment »).`,
-    `Avant de cliquer sur le bouton qui publie, relis chaque champ rempli du formulaire et compare-le lettre par lettre avec les valeurs ci-dessus. S'il y a la moindre différence, corrige le champ, puis relis encore. Ne publie qu'un formulaire identique.`,
+    // Bornée : une correction illimitée a épuisé le budget de l'agent sur un seul mot (« lumineux » / « lumineuse »).
+    `Avant de cliquer sur le bouton qui publie, relis chaque champ une seule fois. Si un champ diffère des valeurs ci-dessus, vide-le entièrement (Ctrl+A puis Suppr) et retape la valeur complète, une seule fois, sans corriger lettre par lettre. Puis publie : Ghost relira la page publiée.`,
     ecarts.length ? `Attention, lors d'un essai précédent : ${ecarts.join(' ; ')}.` : '',
   ].filter(Boolean).join('\n');
 }
@@ -335,8 +337,13 @@ export async function avancer(id: string): Promise<Execution> {
     const chs = await Promise.all(sessions.map((s) => changements(s.id)));
     p.cout += chs.reduce((n, ch) => n + (ch.metrics?.total_cost ?? 0), 0);
     const reps = chs.map((ch) => ch.answer as ReponseAgir | undefined);
-    const signal = reps.find((r) => r?.statut === 'signale');
+    // Un agent à court d'étapes ou de temps n'a rien refusé : c'est un échec, relançable, pas un refus voulu.
+    const signal = reps.find((r) => r?.statut === 'signale' && !A_COURT.test(r.raison ?? ''));
     if (signal) return terminer({ cle: ligne.cle, statut: 'signale', portails: {}, raison: signal.raison ?? undefined });
+    const court = reps.find((r) => r?.statut === 'signale');
+    if (court && !reps.some((r) => r?.publications?.length)) {
+      return terminer({ cle: ligne.cle, statut: 'echec', portails: Object.fromEntries(destinations.map((d) => [d.site, 'absent'])), raison: `L'agent s'est arrêté avant de publier : ${court.raison}` });
+    }
 
     // Publications déjà relues comme justes (essai précédent) + celles de ces sessions.
     e.publications = [...(e.publications ?? []).filter((x) => e.etats?.[x.site] === 'ok'), ...reps.flatMap((r) => r?.publications ?? [])];
