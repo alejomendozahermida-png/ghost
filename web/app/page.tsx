@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { TableauDeBord } from '@/components/TableauDeBord';
+import { utilisateur } from '@/lib/session';
 import { boutonPrincipal } from '@/components/PageEntete';
 import { FenetreObservee, MethodeEcrite, SitesFaits } from '@/components/Illustrations';
 
@@ -30,7 +32,8 @@ const CONFIANCE = [
   ['Chaque résultat est relu', 'Ghost vérifie la page publiée, jamais la seule parole de l’agent.'],
 ];
 
-export default function Accueil() {
+export default async function Accueil() {
+  const moi = await utilisateur(); // connecté : le haut reste, le bas devient son espace de travail
   return (
     <>
       <section className="grid items-center gap-14 pt-12 md:grid-cols-[1.2fr_1fr] md:pt-20">
@@ -41,7 +44,11 @@ export default function Accueil() {
           </h1>
           <div className="monter mt-9 flex flex-wrap items-center gap-5 [animation-delay:180ms]">
             <Link href="/observer" className={boutonPrincipal}>Commencer l’observation</Link>
-            <a href="#comment" className="lien py-3 text-[15px] font-medium text-nuit">Voir comment ça marche</a>
+            {moi ? (
+              <Link href="/workflows" className="lien py-3 text-[15px] font-medium text-nuit">Mes workflows</Link>
+            ) : (
+              <a href="#comment" className="lien py-3 text-[15px] font-medium text-nuit">Voir comment ça marche</a>
+            )}
           </div>
         </div>
         <div className="monter flex justify-center [animation-delay:150ms] md:justify-end">
@@ -49,6 +56,7 @@ export default function Accueil() {
         </div>
       </section>
 
+      {moi ? <TableauDeBord /> : <>
       <section id="comment" className="mt-32 scroll-mt-10">
         <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-nuit/70">Comment ça marche</p>
         <h2 className="mt-3 max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.03em] text-encre md:text-[40px]">Trois minutes pour confier une tâche que vous faites tous les jours.</h2>
@@ -119,6 +127,7 @@ export default function Accueil() {
           </div>
         </div>
       </section>
+      </>}
     </>
   );
 }
