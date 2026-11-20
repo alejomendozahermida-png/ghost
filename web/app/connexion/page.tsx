@@ -82,7 +82,7 @@ export default function Connexion() {
       <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[14%] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgb(120_150_255/0.22),transparent_62%)]" />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 -right-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,rgb(255_255_255/0.08),transparent_65%)]" />
       <div className="relative mx-auto flex min-h-full max-w-md flex-col px-6 pb-8 pt-6">
-        <Link href="/" className="lien inline-flex items-center gap-2 self-start py-2 text-sm font-semibold text-white/80 hover:text-white">
+        <Link href="/" className="lien inline-flex items-center gap-2 self-center py-2 text-sm font-semibold text-white/80 hover:text-white">
           <Logo taille={22} couleur="#ffffff" decoratif />Ghost
         </Link>
 
