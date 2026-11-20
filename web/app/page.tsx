@@ -40,9 +40,6 @@ export default function Accueil() {
             Ghost voit ce que vous répétez.
             <span className="block text-nuit/60">Et le fait à votre place.</span>
           </h1>
-          <p className="monter mt-6 max-w-lg text-[18px] leading-relaxed text-texte [animation-delay:120ms]">
-            Montrez une tâche une fois. Ghost la comprend, crée un agent, et la refait sur vos sites, même ceux qui n’ont pas d’API.
-          </p>
           <div className="monter mt-9 flex flex-wrap items-center gap-5 [animation-delay:180ms]">
             <Link href="/observer" className={boutonPrincipal}>Commencer l’observation</Link>
             <a href="#comment" className="lien py-3 text-[15px] font-medium text-nuit">Voir comment ça marche</a>
