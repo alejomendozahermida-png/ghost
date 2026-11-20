@@ -23,6 +23,14 @@ Le cas n'est pas propre à l'immobilier : support client (recopier un ticket dan
 
 Vous montrez une tâche une fois ; Ghost la comprend, crée un agent, et la refait à votre place sur vos sites, en vérifiant chaque résultat.
 
+## Aperçu
+
+![Accueil de Ghost](docs/captures/accueil.png)
+
+![Fiche d'un workflow : ce que Ghost a compris et le temps mesuré](docs/captures/fiche-methode.png.jpeg)
+
+Sur une seule annonce et un seul portail, l'agent met un peu plus de temps qu'un humain (39 s contre 26 s, relecture comprise). Le gain vient de ce qu'il travaille seul et en parallèle : deux biens publiés sur deux portails en 1 min 42, relecture comprise (voir « Résultats mesurés »).
+
 ## Ce que fait Ghost
 
 | Étape | Ce qui se passe |
