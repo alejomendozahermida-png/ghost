@@ -1,4 +1,3 @@
-import { champsARisque } from '@/lib/erreurs';
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -259,10 +258,10 @@ export async function avancer(id: string): Promise<Execution> {
   const tous = w.destinations ?? [];
   // La page des valeurs à coller n'existe qu'en ligne (l'agent H ne voit pas localhost).
   const site = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  let risques: Promise<Set<string>> | null = null; // lu une fois par appel, seulement si un agent démarre
+  // Coller seulement à la relance, pour le champ qui est ressorti faux : coller partout d'office (d'après l'historique)
+  // faisait passer chaque agent de 8 à 18-21 étapes, et une exécution de 3 lignes à 3 min 31.
   const collerPour = async (rang: number, ecarts: string[]) => {
-    risques ??= champsARisque(w.id).catch(() => new Set<string>());
-    const colonnes = aColler(data.lignes[rang], ecarts, await risques);
+    const colonnes = aColler(data.lignes[rang], ecarts);
     if (!site || !colonnes.length) return undefined;
     return { colonnes, url: `https://${site}/coller/${id}/${rang}?${colonnes.map((c) => `c=${encodeURIComponent(c)}`).join('&')}` };
   };
