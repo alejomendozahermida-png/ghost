@@ -8,6 +8,7 @@ const LIENS = [
   ['/observer', 'Observer'],
   ['/workflows', 'Mes workflows'],
   ['/acces', 'Mes accès'],
+  ['/tarifs', 'Tarifs'],
 ] as const;
 
 // Liens en ligne sur ordinateur, menu repliable sur téléphone (la ligne complète ne tient pas en 390 px).
