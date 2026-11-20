@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export type Humeur = 'repos' | 'observe' | 'travaille' | 'joie' | 'souci';
+export type Humeur = 'repos' | 'observe' | 'travaille' | 'joie' | 'souci' | 'discret'; // discret : yeux fermés (mot de passe)
 
 interface LogoProps {
   taille?: number;
@@ -15,8 +15,8 @@ interface LogoProps {
 const CORPS = 'M12 65 C18 58 24 48 27 37 C31 22 42 6 58 6 C76 6 88 20 88 39 C88 62 72 79 40 83 C43 78 42 70 36 67 C30 64 20 66 13 66.5 Z';
 const VISIERE = 'M52 21 H70 A13 13 0 0 1 83 34 V39 A13 13 0 0 1 70 52 H52 A13 13 0 0 1 39 39 V34 A13 13 0 0 1 52 21 Z';
 // Chaque humeur : une animation du corps et une des yeux (classes définies dans globals.css).
-const CORPS_ANIM: Record<Humeur, string> = { repos: 'flotter', observe: 'flotter', travaille: 'besogner', joie: 'sautiller', souci: '' };
-const YEUX_ANIM: Record<Humeur, string> = { repos: 'cligner', observe: 'scruter', travaille: 'affairer', joie: '', souci: '' };
+const CORPS_ANIM: Record<Humeur, string> = { repos: 'flotter', observe: 'flotter', travaille: 'besogner', joie: 'sautiller', souci: '', discret: 'flotter' };
+const YEUX_ANIM: Record<Humeur, string> = { repos: 'cligner', observe: 'scruter', travaille: 'affairer', joie: '', souci: '', discret: '' };
 
 // Le fantôme Ghost : la visière est un trou (le fond passe au travers), seuls les yeux restent pleins.
 export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouris = false, decoratif = false }: LogoProps) {
@@ -39,7 +39,12 @@ export function Logo({ taille = 32, anime = false, humeur = 'repos', suivreSouri
   }, [suivreSouris]);
 
   const yeux =
-    humeur === 'joie' ? (
+    humeur === 'discret' ? (
+      <g fill="none" stroke="#0b1d45" strokeWidth="3.2" strokeLinecap="round">
+        <path d="M57 38 Q60.75 42.5 64.5 38" />
+        <path d="M72 38 Q75.75 42.5 79.5 38" />
+      </g>
+    ) : humeur === 'joie' ? (
       <g fill="none" stroke="#0b1d45" strokeWidth="3.2" strokeLinecap="round">
         <path d="M57 40 Q60.75 31 64.5 40" />
         <path d="M72 40 Q75.75 31 79.5 40" />

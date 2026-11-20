@@ -115,7 +115,7 @@ export default function Accueil() {
           <h2 className="text-[32px] font-bold leading-tight tracking-[-0.03em] text-encre md:text-[44px]">Montrez une tâche une fois.<span className="block text-nuit/60">Ghost s’occupe du reste.</span></h2>
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Link href="/observer" className={boutonPrincipal}>Commencer l’observation</Link>
-            <Link href="/connexion" className="lien py-3 text-[15px] font-medium text-nuit">Créer un compte</Link>
+            <Link href="/connexion?mode=inscription" className="lien py-3 text-[15px] font-medium text-nuit">Créer un compte</Link>
           </div>
         </div>
       </section>
