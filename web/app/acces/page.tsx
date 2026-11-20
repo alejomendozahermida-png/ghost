@@ -19,13 +19,32 @@ const PROTECTION = [
 
 // Services courants : le bon nom et la bonne page de connexion sont déjà remplis, il reste l'e-mail et le mot de passe.
 const MODELES = [
-  { id: 'google', nom: 'Google', detail: 'Gmail, Drive, Sheets', url: 'https://accounts.google.com' },
-  { id: 'linkedin', nom: 'LinkedIn', detail: 'Profil, messages', url: 'https://www.linkedin.com' },
-  { id: 'hubspot', nom: 'HubSpot', detail: 'CRM', url: 'https://app.hubspot.com' },
-  { id: 'salesforce', nom: 'Salesforce', detail: 'CRM', url: 'https://login.salesforce.com' },
-  { id: 'notion', nom: 'Notion', detail: 'Pages, bases', url: 'https://www.notion.so' },
-  { id: 'airtable', nom: 'Airtable', detail: 'Bases', url: 'https://airtable.com' },
+  { id: 'google', nom: 'Google', detail: 'Gmail, Drive, Sheets', url: 'https://accounts.google.com', categorie: 'Essentiels' },
+  { id: 'linkedin', nom: 'LinkedIn', detail: 'Profil, messages', url: 'https://www.linkedin.com', categorie: 'Essentiels' },
+  { id: 'slack', nom: 'Slack', detail: 'Messagerie d’équipe', url: 'https://slack.com', categorie: 'Essentiels' },
+  { id: 'dropbox', nom: 'Dropbox', detail: 'Fichiers', url: 'https://www.dropbox.com', categorie: 'Essentiels' },
+  { id: 'hubspot', nom: 'HubSpot', detail: 'CRM', url: 'https://app.hubspot.com', categorie: 'CRM et ventes' },
+  { id: 'salesforce', nom: 'Salesforce', detail: 'CRM', url: 'https://login.salesforce.com', categorie: 'CRM et ventes' },
+  { id: 'zoho', nom: 'Zoho', detail: 'CRM, facturation', url: 'https://accounts.zoho.eu', categorie: 'CRM et ventes' },
+  { id: 'odoo', nom: 'Odoo', detail: 'ERP, CRM', url: 'https://www.odoo.com', categorie: 'CRM et ventes' },
+  { id: 'zendesk', nom: 'Zendesk', detail: 'Tickets, support', url: 'https://www.zendesk.com', categorie: 'Support client' },
+  { id: 'intercom', nom: 'Intercom', detail: 'Conversations, support', url: 'https://app.intercom.com', categorie: 'Support client' },
+  { id: 'notion', nom: 'Notion', detail: 'Pages, bases', url: 'https://www.notion.so', categorie: 'Organisation' },
+  { id: 'airtable', nom: 'Airtable', detail: 'Bases', url: 'https://airtable.com', categorie: 'Organisation' },
+  { id: 'trello', nom: 'Trello', detail: 'Tableaux', url: 'https://trello.com', categorie: 'Organisation' },
+  { id: 'asana', nom: 'Asana', detail: 'Projets', url: 'https://app.asana.com', categorie: 'Organisation' },
+  { id: 'clickup', nom: 'ClickUp', detail: 'Projets', url: 'https://app.clickup.com', categorie: 'Organisation' },
+  { id: 'jira', nom: 'Jira', detail: 'Tickets, projets', url: 'https://id.atlassian.com', categorie: 'Organisation' },
+  { id: 'shopify', nom: 'Shopify', detail: 'Boutique', url: 'https://accounts.shopify.com', categorie: 'Site et boutique' },
+  { id: 'wordpress', nom: 'WordPress', detail: 'Site, blog', url: 'https://wordpress.com', categorie: 'Site et boutique' },
+  { id: 'wix', nom: 'Wix', detail: 'Site', url: 'https://users.wix.com', categorie: 'Site et boutique' },
+  { id: 'webflow', nom: 'Webflow', detail: 'Site', url: 'https://webflow.com', categorie: 'Site et boutique' },
+  { id: 'mailchimp', nom: 'Mailchimp', detail: 'E-mailing', url: 'https://login.mailchimp.com', categorie: 'Marketing' },
+  { id: 'brevo', nom: 'Brevo', detail: 'E-mailing, SMS', url: 'https://login.brevo.com', categorie: 'Marketing' },
+  { id: 'typeform', nom: 'Typeform', detail: 'Formulaires', url: 'https://admin.typeform.com', categorie: 'Marketing' },
+  { id: 'calendly', nom: 'Calendly', detail: 'Rendez-vous', url: 'https://calendly.com', categorie: 'Marketing' },
 ] as const;
+const CATEGORIES = [...new Set(MODELES.map((m) => m.categorie))];
 type Modele = (typeof MODELES)[number];
 const modeleDe = (url: string) => MODELES.find((m) => new URL(m.url).origin === url);
 
@@ -46,6 +65,7 @@ export default function MesAcces() {
   const [ouvert, setOuvert] = useState(false);
   const [deuxFacteurs, setDeuxFacteurs] = useState(false);
   const [choix, setChoix] = useState<Modele | 'autre' | null>(null); // service choisi, ou « autre site »
+  const [recherche, setRecherche] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [aConfirmer, setAConfirmer] = useState<string | null>(null); // retrait demandé, en attente de confirmation
@@ -91,21 +111,48 @@ export default function MesAcces() {
             <form onSubmit={ajouter} className="monter mb-10 grid gap-5 rounded-3xl bg-surface p-8 shadow-[0_1px_0_#e6e6e1,0_20px_50px_-30px_rgb(11_29_69/0.35)] md:grid-cols-2">
               <p className="text-lg font-semibold tracking-tight text-encre md:col-span-2">Nouvelle plateforme</p>
               {!choix && (
-                <div role="group" aria-label="Choisir le service" className="grid gap-2 sm:grid-cols-2 md:col-span-2">
-                  {[...MODELES, null].map((m) => (
-                    <button
-                      key={m?.id ?? 'autre'}
-                      type="button"
-                      onClick={() => { setChoix(m ?? 'autre'); setForm({ ...form, plateforme: m?.nom ?? '', url: m?.url ?? '' }); }}
-                      className="bouton flex items-center gap-3 rounded-2xl border border-trait bg-surface px-4 py-3 text-left hover:border-nuit/30"
-                    >
-                      <Icone modele={m ?? undefined} nom={m?.nom ?? '+'} />
-                      <span>
-                        <span className="block text-[15px] font-semibold text-encre">{m?.nom ?? 'Autre site'}</span>
-                        <span className="block text-sm text-texte">{m?.detail ?? 'Nom et adresse à indiquer'}</span>
-                      </span>
-                    </button>
-                  ))}
+                <div className="space-y-5 md:col-span-2">
+                  <div>
+                    <label htmlFor="recherche" className="sr-only">Rechercher un service</label>
+                    <input id="recherche" value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un service (Zendesk, Shopify…)" className={champ} />
+                  </div>
+                  {CATEGORIES.map((cat) => {
+                    const q = recherche.trim().toLowerCase();
+                    const liste = MODELES.filter((m) => m.categorie === cat && (!q || `${m.nom} ${m.detail}`.toLowerCase().includes(q)));
+                    if (!liste.length) return null;
+                    return (
+                      <div key={cat} role="group" aria-label={cat}>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-discret">{cat}</p>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          {liste.map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => { setChoix(m); setForm({ ...form, plateforme: m.nom, url: m.url }); }}
+                              className="bouton flex items-center gap-3 rounded-2xl border border-trait bg-surface px-4 py-3 text-left hover:border-nuit/30"
+                            >
+                              <Icone modele={m} nom={m.nom} />
+                              <span>
+                                <span className="block text-[15px] font-semibold text-encre">{m.nom}</span>
+                                <span className="block text-sm text-texte">{m.detail}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => { setChoix('autre'); setForm({ ...form, plateforme: recherche.trim(), url: '' }); }}
+                    className="bouton flex w-full items-center gap-3 rounded-2xl border border-dashed border-champ/70 px-4 py-3 text-left hover:border-nuit/30 sm:w-1/2"
+                  >
+                    <Icone nom="+" />
+                    <span>
+                      <span className="block text-[15px] font-semibold text-encre">Autre site</span>
+                      <span className="block text-sm text-texte">Nom et adresse à indiquer</span>
+                    </span>
+                  </button>
                 </div>
               )}
               {choix && choix !== 'autre' && (
@@ -145,7 +192,7 @@ export default function MesAcces() {
               </>}
               <div className="flex flex-wrap gap-3 md:col-span-2">
                 <button disabled={envoi || !choix} className={boutonPrincipal}>{envoi ? 'Enregistrement…' : 'Enregistrer dans le coffre-fort'}</button>
-                <button type="button" onClick={() => { setOuvert(false); setForm(VIDE); setChoix(null); setErreur(null); }} className="bouton rounded-full px-5 py-3 text-sm font-medium text-texte">Annuler</button>
+                <button type="button" onClick={() => { setOuvert(false); setForm(VIDE); setChoix(null); setRecherche(''); setErreur(null); }} className="bouton rounded-full px-5 py-3 text-sm font-medium text-texte">Annuler</button>
               </div>
               {erreur && <p role="alert" className="text-[15px] text-alerte md:col-span-2">{erreur}</p>}
             </form>

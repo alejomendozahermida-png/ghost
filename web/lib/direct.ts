@@ -51,6 +51,13 @@ export async function sessionDe(executionId: string): Promise<string | null> {
   return data?.session_id ?? null;
 }
 
+// Toutes les sessions H d'une exécution (un agent par site et par ligne, relectures comprises) : seules celles-ci peuvent être montrées.
+export async function sessionsDe(executionId: string): Promise<Set<string>> {
+  const { data } = await db.from('executions').select('session_id, verification').eq('id', executionId).maybeSingle();
+  const lignes = (data?.verification as { lignes?: { sessions?: { id: string }[]; relecture?: string }[] } | null)?.lignes ?? [];
+  return new Set([data?.session_id, ...lignes.flatMap((l) => [...(l.sessions ?? []).map((s) => s.id), l.relecture])].filter((x): x is string => !!x));
+}
+
 export async function vueDirecte(sessionId: string) {
   const ev = await evenements(sessionId);
   const observations = ev.filter((e) => e.data?.kind === 'observation_event');
@@ -64,17 +71,19 @@ export async function vueDirecte(sessionId: string) {
     })
     .filter((a): a is Action => a !== null);
   return {
+    session: sessionId,
     titre: derniere?.metadata?.title ?? null,
     site: derniere?.metadata?.url ? hote(derniere.metadata.url) : null,
-    capture: observations.length, // numéro de la capture : l'écran ne se recharge que s'il change
+    capture: observations.length, // nombre de captures : le navigateur va chercher chacune, pour les rejouer dans l'ordre
     actions: actions.slice(-8).reverse(),
   };
 }
 
-// La dernière capture, relayée par notre serveur : son adresse chez H exige la clé, qui ne va jamais au navigateur.
-export async function derniereCapture(sessionId: string): Promise<Response | null> {
-  const source = (await evenements(sessionId)).filter((e) => e.data?.kind === 'observation_event').at(-1)?.data?.image?.source;
+// La n-ième capture d'une session (1 = la première), relayée par notre serveur : son adresse chez H exige la clé, qui ne va jamais au navigateur.
+// Une capture ne change plus une fois prise : le navigateur peut la garder.
+export async function capture(sessionId: string, n: number): Promise<Response | null> {
+  const source = (await evenements(sessionId)).filter((e) => e.data?.kind === 'observation_event').at(n - 1)?.data?.image?.source;
   if (!source) return null;
   const r = await fetch(source, { headers: { Authorization: `Bearer ${process.env.HAI_API_KEY}` }, signal: AbortSignal.timeout(10_000) });
-  return r.ok ? new Response(r.body, { headers: { 'Content-Type': r.headers.get('content-type') ?? 'image/png', 'Cache-Control': 'private, max-age=300' } }) : null;
+  return r.ok ? new Response(r.body, { headers: { 'Content-Type': r.headers.get('content-type') ?? 'image/png', 'Cache-Control': 'private, max-age=3600, immutable' } }) : null;
 }

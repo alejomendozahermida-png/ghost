@@ -89,3 +89,7 @@ export const creerCoffre = (nom: string) =>
 export const ajouterSecret = (coffre: string, nom: string, url: string, valeurs: Record<string, string>) =>
   h<{ id: string; fields: string[] }>(`/vaults/${coffre}/items`, { method: 'POST', body: JSON.stringify({ name: nom, urls: [url], values: valeurs }) });
 export const retirerSecret = (coffre: string, item: string) => h(`/vaults/${coffre}/items/${item}`, { method: 'DELETE' });
+
+// Retire l'agent et sa Skill quand le workflow est effacé (absents : rien à faire).
+export const supprimerAgent = (nom: string) =>
+  Promise.all([h(`/agents/${nom}`, { method: 'DELETE' }), h(`/skills/${nom}`, { method: 'DELETE' })].map((p) => p.catch(() => null)));

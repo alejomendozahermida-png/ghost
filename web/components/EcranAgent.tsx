@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Logo } from '@/components/Logo';
 
 interface Action {
@@ -10,6 +10,7 @@ interface Action {
   clic: boolean;
 }
 interface Vue {
+  session: string;
   titre: string | null;
   site: string | null;
   capture: number;
@@ -17,10 +18,18 @@ interface Vue {
 }
 
 // Ce que voit l'agent, en direct : sa dernière capture, l'endroit où il agit, et le fil de ses actions.
+const INTERVALLE_LECTURE_MS = 1500;
+const PAS_IMAGE_MS = 800; // une capture toutes les 0,8 s : léger décalage, mais un défilement continu
+const RETARD_MAX = 6; // au-delà, on saute les plus anciennes pour ne pas trop traîner derrière l'agent
+
+// Ce que voit l'agent, en direct : chacune de ses captures rejouée dans l'ordre avec un fondu, l'endroit où il agit, et le fil de ses actions.
 export function EcranAgent({ executionId, actif, phrase }: { executionId: string; actif: boolean; phrase: string }) {
   const [vue, setVue] = useState<Vue | null>(null);
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<{ avant: string | null; maintenant: string | null }>({ avant: null, maintenant: null });
+  const file = useRef<string[]>([]);
+  const vues = useRef<Map<string, number>>(new Map()); // dernière capture mise en file, par session
 
+  // 1. Lecture : chaque nouvelle capture de chaque agent entre dans la file.
   useEffect(() => {
     if (!actif) return;
     let vivant = true;
@@ -29,21 +38,41 @@ export function EcranAgent({ executionId, actif, phrase }: { executionId: string
       const v = r?.ok ? ((await r.json()) as Vue | null) : null;
       if (!vivant || !v) return;
       setVue(v);
-      if (v.capture) {
-        // On charge la nouvelle capture avant de l'afficher : l'écran change sans clignoter.
-        const src = `/api/executions/${executionId}/ecran?n=${v.capture}`;
-        const img = new Image();
-        img.onload = () => vivant && setImage(src);
-        img.src = src;
-      }
+      const deja = vues.current.get(v.session) ?? Math.max(0, v.capture - 1); // en arrivant, on part de la dernière
+      for (let n = deja + 1; n <= v.capture; n++) file.current.push(`/api/executions/${executionId}/ecran?s=${v.session}&n=${n}`);
+      vues.current.set(v.session, Math.max(deja, v.capture));
+      if (file.current.length > RETARD_MAX) file.current = file.current.slice(-RETARD_MAX);
     };
     lire();
-    const i = setInterval(lire, 2500);
+    const i = setInterval(lire, INTERVALLE_LECTURE_MS);
     return () => {
       vivant = false;
       clearInterval(i);
     };
   }, [executionId, actif]);
+
+  // 2. Lecture à rythme régulier : l'image suivante est chargée avant d'être montrée, puis fond sur la précédente.
+  useEffect(() => {
+    let vivant = true;
+    let occupe = false;
+    const t = setInterval(() => {
+      const src = file.current[0];
+      if (!src || occupe) return;
+      occupe = true;
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        file.current.shift();
+        occupe = false;
+        if (vivant && img.naturalWidth) setImages((x) => ({ avant: x.maintenant, maintenant: src }));
+      };
+      img.src = src;
+    }, PAS_IMAGE_MS);
+    return () => {
+      vivant = false;
+      clearInterval(t);
+    };
+  }, []);
+  const image = images.maintenant;
 
   const derniere = vue?.actions[0];
 
@@ -61,6 +90,11 @@ export function EcranAgent({ executionId, actif, phrase }: { executionId: string
         <div className="relative aspect-[1200/838] bg-fond">
           {image ? (
             <>
+              {/* L'image précédente reste dessous pendant le fondu : pas d'éclair entre deux captures. */}
+              {images.avant && (
+                // eslint-disable-next-line @next/next/no-img-element -- capture privée relayée par notre serveur, rien à optimiser
+                <img src={images.avant} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-top" />
+              )}
               {/* eslint-disable-next-line @next/next/no-img-element -- capture privée relayée par notre serveur, rien à optimiser */}
               <img key={image} src={image} alt={`Écran de l’agent : ${vue?.titre ?? 'page en cours'}`} className="fondu absolute inset-0 h-full w-full object-cover object-top" />
               {derniere?.x != null && derniere.y != null && (

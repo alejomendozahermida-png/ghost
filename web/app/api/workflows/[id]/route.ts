@@ -5,6 +5,7 @@ import { lireSheet } from '@/lib/sheet';
 import { lireWorkflow, preparer, type Destination } from '@/lib/workflow';
 import { appartient } from '@/lib/proprietaire';
 import { NON_CONNECTE, utilisateur } from '@/lib/session';
+import { supprimerAgent } from '@/lib/h';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -66,4 +67,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const seuleVeille = 'surveillance' in champs && Object.keys(champs).length === 1;
   const w = seuleVeille ? await lireWorkflow(id) : await preparer(id).catch((e: Error) => ({ erreur: e.message }));
   return Response.json(w);
+}
+
+// Efface le workflow, son historique d'exécutions et son agent H. Refusé pendant qu'il travaille.
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const moi = await utilisateur();
+  if (!moi || !(await appartient('workflows', id, moi.id))) return NON_CONNECTE();
+  const { data: enCours } = await db.from('executions').select('id').eq('workflow_id', id).eq('statut', 'en_cours').maybeSingle();
+  if (enCours) return Response.json({ erreur: 'L’agent travaille en ce moment : attendez la fin pour effacer ce workflow.' }, { status: 409 });
+  const w = await lireWorkflow(id);
+  const { error } = await db.from('workflows').delete().eq('id', id); // exécutions et lignes faites partent avec (on delete cascade)
+  if (error) return Response.json({ erreur: error.message }, { status: 500 });
+  if (w?.agent) await supprimerAgent(w.agent);
+  return Response.json({ ok: true });
 }

@@ -53,6 +53,14 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
   const [sheet, setSheet] = useState('');
   const [sites, setSites] = useState<Destination[]>([]);
   const [regle, setRegle] = useState('');
+  const [aEffacer, setAEffacer] = useState(false); // effacement demandé, en attente de confirmation
+  const [erreurEffacer, setErreurEffacer] = useState<string | null>(null);
+
+  async function effacer() {
+    const r = await fetch(`/api/workflows/${id}`, { method: 'DELETE' });
+    if (r.ok) return (window.location.href = '/workflows');
+    setErreurEffacer((await r.json().catch(() => ({}))).erreur ?? 'Impossible d’effacer ce workflow.');
+  }
 
   useEffect(() => {
     fetch(`/api/workflows/${id}`)
@@ -250,6 +258,20 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           </div>}
           {retour('veille')}
           {pret && <Declencheurs w={w} envoi={envoi} enregistrer={enregistrer} retour={retour} />}
+        </div>
+        <div className="mt-6 border-t border-trait pt-6">
+          {aEffacer ? (
+            <div role="group" aria-label="Confirmer l’effacement">
+              <p className="text-sm text-texte">Effacer définitivement ce workflow ? Son historique et son agent seront supprimés.</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={effacer} className="bouton rounded-full bg-alerte px-4 py-2.5 text-sm font-medium text-white">Effacer</button>
+                <button onClick={() => { setAEffacer(false); setErreurEffacer(null); }} className="bouton rounded-full px-4 py-2.5 text-sm text-texte">Annuler</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setAEffacer(true)} className="lien py-2 text-sm text-alerte">Effacer ce workflow</button>
+          )}
+          {erreurEffacer && <p role="alert" className="mt-2 text-sm text-alerte">{erreurEffacer}</p>}
         </div>
       </aside>
     </div>

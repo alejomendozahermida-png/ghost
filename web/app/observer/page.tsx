@@ -252,32 +252,21 @@ export default function Observer() {
 
   if (etat === 'pret') {
     return (
-      <section className="grid items-center gap-14 pb-10 pt-12 lg:grid-cols-[1.05fr_1fr]">
+      <section className="grid items-center gap-10 pb-8 pt-6 lg:min-h-[calc(100svh-8rem)] lg:grid-cols-[1.35fr_1fr] lg:gap-14">
         <div>
           <p className="monter text-[13px] font-semibold uppercase tracking-[0.16em] text-nuit/70">Observation</p>
-          <h1 className="monter mt-3 text-[40px] font-bold leading-[1.05] tracking-[-0.03em] [animation-delay:60ms] md:text-[56px]">
+          <h1 className="monter mt-3 text-[40px] font-bold leading-[1.05] tracking-[-0.03em] [animation-delay:60ms] md:text-[44px] 2xl:text-[56px]">
             Travaillez normalement.
             <span className="block text-nuit/60">Ghost repère le reste.</span>
           </h1>
-          <p className="monter mt-6 max-w-lg text-[17px] leading-relaxed text-texte [animation-delay:120ms]">
+          <p className="monter mt-5 max-w-lg text-[17px] leading-relaxed text-texte [animation-delay:120ms]">
             Partagez votre fenêtre Chrome et faites votre travail habituel. Dès qu’une tâche revient, Ghost vous prévient et vous propose de la confier à un agent.
           </p>
-          <ul className="monter mt-10 space-y-5 [animation-delay:180ms]">
-            {GARANTIES.map(([titre, texte], n) => (
-              <li key={titre} className="flex gap-4">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-nuit-clair font-mono text-sm font-medium text-nuit">{n + 1}</span>
-                <div>
-                  <p className="text-[15px] font-semibold text-encre">{titre}</p>
-                  <p className="mt-0.5 text-[15px] text-texte">{texte}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="monter mt-12 flex flex-wrap items-center gap-5 [animation-delay:240ms]">
+          <div className="monter mt-8 flex flex-wrap items-center gap-5 [animation-delay:180ms]">
             <button onClick={demarrer} className={boutonPrincipal}>Démarrer l’observation</button>
             <p className="text-sm text-discret">Chrome ou Edge, sur ordinateur.</p>
           </div>
-          <div className="monter mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm [animation-delay:280ms]">
+          <div className="monter mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm [animation-delay:240ms]">
             {permission === 'granted' ? (
               <>
                 <span className="flex items-center gap-2 text-succes"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-succes" />Notifications activées</span>
@@ -299,6 +288,17 @@ export default function Observer() {
             </p>
           )}
           {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
+          <ul className="monter mt-8 grid gap-4 border-t border-trait pt-6 sm:grid-cols-3 [animation-delay:300ms]">
+            {GARANTIES.map(([titre, texte], n) => (
+              <li key={titre} className="flex gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-nuit-clair font-mono text-xs font-medium text-nuit">{n + 1}</span>
+                <div>
+                  <p className="text-sm font-semibold text-encre">{titre}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-texte">{texte}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Aperçu : une fenêtre de travail que le fantôme parcourt du regard. */}
@@ -371,7 +371,7 @@ export default function Observer() {
               <p className="mt-1 text-sm text-discret">Passez sur l’onglet de votre outil et travaillez normalement.</p>
             </div>
           ) : (
-            <ol aria-live="polite" aria-relevant="additions" className="mt-5 space-y-2">
+            <ol aria-live="polite" aria-relevant="additions" className="mt-5 max-h-[58svh] space-y-2 overflow-y-auto pb-8 [mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
               {lignes.map((l, i) => (
                 <li key={l.id} className={`monter grid grid-cols-[7.5rem_1fr] items-baseline gap-4 rounded-xl px-4 py-3 ${i === 0 ? 'bg-surface shadow-[0_1px_0_#e6e6e1]' : ''}`}>
                   <span className="truncate text-sm font-semibold text-nuit">{l.site}</span>

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // Rafraîchit la session à chaque requête et renvoie vers la connexion les pages réservées aux comptes.
-const PUBLIQUES = ['/', '/connexion'];
+const PUBLIQUES = ['/', '/connexion', '/mentions-legales', '/confidentialite', '/conditions', '/cookies'];
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
