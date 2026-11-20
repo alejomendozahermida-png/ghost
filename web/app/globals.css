@@ -134,11 +134,15 @@ details.reglages[open] > :not(summary) { animation: monter 0.45s cubic-bezier(0.
 .bouton:hover { transform: translateY(-2px); }
 .bouton:active { transform: translateY(0) scale(0.98); transition-duration: 0.1s; }
 .bouton:focus-visible, .lien:focus-visible { outline: 2px solid var(--color-nuit); outline-offset: 4px; }
+/* Liens : au survol, une pastille bleu nuit discrète apparaît derrière le texte (jamais de soulignement). */
 .lien {
-  background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
-  transition: background-size 0.35s var(--ease-doux), color 0.2s;
+  border-radius: 9999px;
+  padding-inline: 0.55em;
+  margin-inline: -0.55em;
+  transition: color 0.2s, background-color 0.2s;
 }
-.lien:hover { background-size: 100% 1px; }
+.lien:hover { color: var(--color-nuit); background-color: rgb(11 29 69 / 0.07); }
+.bg-nuit .lien:hover, .verre-nuit .lien:hover { color: #fff; background-color: rgb(255 255 255 / 0.12); }
 
 /* Le trajet des données : des impulsions courent de la source vers les sites */
 @keyframes couler { to { stroke-dashoffset: -28; } }
