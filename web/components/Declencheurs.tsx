@@ -52,7 +52,7 @@ export function Declencheurs({ w, envoi, enregistrer, retour }: Props) {
 
   return (
     <>
-      <div className="mt-6 border-t border-trait pt-6">
+      <div className="mt-8">
         <p className="text-[15px] font-medium">Planifier</p>
         {w.planification && !modifier ? (
           <>
@@ -94,7 +94,7 @@ export function Declencheurs({ w, envoi, enregistrer, retour }: Props) {
         {retour('planif')}
       </div>
 
-      <div className="mt-6 border-t border-trait pt-6">
+      <div className="mt-8">
         <p className="text-[15px] font-medium">Lien de déclenchement</p>
         <p className="mt-1 text-sm text-texte">Un autre outil (Google Sheets, Airtable, Zapier…) l’appelle quand quelque chose change, et l’agent se lance.</p>
         {lien ? (

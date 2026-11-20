@@ -8,7 +8,7 @@ const COLONNES: [string, [string, string][]][] = [
 
 export function PiedDePage() {
   return (
-    <footer className="mt-24 border-t border-trait">
+    <footer className="mt-24">
       <div className="mx-auto grid max-w-5xl gap-10 px-6 py-14 md:grid-cols-[1.5fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2.5">
@@ -29,8 +29,8 @@ export function PiedDePage() {
           </nav>
         ))}
       </div>
-      <div className="border-t border-trait">
-        <p className="mx-auto max-w-5xl px-6 py-5 text-xs text-discret">© 2026 Ghost. Tous droits réservés.</p>
+      <div>
+        <p className="mx-auto max-w-5xl px-6 pb-8 text-xs text-discret">© 2026 Ghost. Tous droits réservés.</p>
       </div>
     </footer>
   );

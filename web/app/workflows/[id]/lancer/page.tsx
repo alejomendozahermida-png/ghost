@@ -148,10 +148,10 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
         )}
 
         {source === 'sheet' && (
-          <fieldset className="monter mt-10 divide-y divide-trait border-y border-trait [animation-delay:160ms]">
+          <fieldset className="monter mt-10 [animation-delay:160ms]">
             <legend className="sr-only">Lignes à traiter</legend>
             {w.lignes.map((l) => (
-              <label key={l.cle} className="flex cursor-pointer items-center gap-5 py-5 transition-colors hover:bg-surface/70">
+              <label key={l.cle} className="-mx-4 flex cursor-pointer items-center gap-5 rounded-xl px-4 py-4 transition-colors hover:bg-white/60">
                 <input
                   type="checkbox"
                   checked={choix.includes(l.cle)}
@@ -271,7 +271,7 @@ export default function Lancer({ params, searchParams }: { params: Promise<{ id:
       </ol>
 
       <p role="status" className="sr-only">{fini ? suivi?.resume : `Étape : ${ETAPES[etape]}`}</p>
-      <ul className="mt-14 divide-y divide-trait border-y border-trait">
+      <ul className="mt-14">
         {(suivi?.lignes?.length ? suivi.lignes : lignes).map((l, i) => {
           const res = suivi?.resultats.find((r) => r.cle === l.cle);
           const enCours = !res && !fini && !!suivi?.phases?.[i];

@@ -126,7 +126,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
         {w.procedure && (
           <>
             <h2 className={titre}>Ce que Ghost a compris</h2>
-            <ol className="verre carte-rayon mt-4 divide-y divide-trait/80 px-6">
+            <ol className="verre carte-rayon mt-4 px-6 py-2">
               {w.procedure.etapes.map((e, i) => (
                 <li key={i} className="flex gap-6 py-5">
                   <span className="font-mono text-sm text-discret">{i + 1}</span>
@@ -242,13 +242,13 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
             <p className="mt-8 rounded-xl bg-nuit-clair p-4 text-sm text-nuit">Pour créer l’agent, il manque {manque.join(' et ') || 'une information'}.</p>
           )}
 
-          {pret && <details className="reglages group mt-6 border-t border-trait pt-5">
+          {pret && <details className="reglages group mt-8">
             <summary className="flex cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-encre">
               Lancement automatique
               <span aria-hidden="true" className="text-discret transition-transform duration-300 group-open:rotate-45">+</span>
             </summary>
           {/* La veille n'a de sens que pour une source qui reçoit de nouvelles lignes. */}
-          {(source === 'sheet' || source === 'lecture') && <div className="mt-6 flex items-start justify-between gap-4 border-t border-trait pt-6">
+          {(source === 'sheet' || source === 'lecture') && <div className="mt-8 flex items-start justify-between gap-4">
             <div>
               <p id="veille" className="text-[15px] font-medium">Surveiller le Sheet</p>
               <p className="mt-1 text-sm text-texte">Chaque nouvelle ligne est faite automatiquement, en moins d’une minute. Le Sheet doit s’ouvrir par lien.</p>
@@ -268,7 +268,7 @@ export default function FicheWorkflow({ params }: { params: Promise<{ id: string
           <Declencheurs w={w} envoi={envoi} enregistrer={enregistrer} retour={retour} />
           </details>}
         </div>
-        <div className="mt-6 border-t border-trait pt-6">
+        <div className="mt-8">
           {aEffacer ? (
             <div role="group" aria-label="Confirmer l’effacement">
               <p className="text-sm text-texte">Effacer définitivement ce workflow ? Son historique et son agent seront supprimés.</p>

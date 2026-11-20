@@ -67,7 +67,7 @@ export function CarteWorkflow({ w, rang = 0 }: { w: WorkflowLigne; rang?: number
       </div>
       <div className="detail-survol">
         <div>
-          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-encre/[0.08] pt-4 sm:grid-cols-4">
+          <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
             {detail.map(([t, v]) => (
               <div key={t} className="min-w-0">
                 <dt className="text-[12px] font-medium uppercase tracking-[0.08em] text-discret">{t}</dt>

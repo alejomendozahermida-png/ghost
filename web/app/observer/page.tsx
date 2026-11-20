@@ -300,7 +300,7 @@ export default function Observer() {
             </p>
           )}
           {erreur && <p role="alert" className="mt-6 text-[15px] text-alerte">{erreur}</p>}
-          <ul className="monter mt-8 grid gap-4 border-t border-trait pt-6 sm:grid-cols-3 [animation-delay:300ms]">
+          <ul className="monter mt-10 grid gap-4 sm:grid-cols-3 [animation-delay:300ms]">
             {GARANTIES.map(([titre, texte], n) => (
               <li key={titre} className="flex gap-3">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-nuit-clair font-mono text-xs font-medium text-nuit">{n + 1}</span>

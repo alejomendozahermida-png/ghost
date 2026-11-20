@@ -109,7 +109,7 @@ export default async function Accueil() {
         <h2 className="mt-3 max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.03em] md:text-[40px]">Un agent qui agit à votre place doit mériter votre confiance.</h2>
         <ul className="mt-12 grid gap-8 md:grid-cols-2">
           {CONFIANCE.map(([titre, texte]) => (
-            <li key={titre} className="border-t border-white/15 pt-5">
+            <li key={titre}>
               <p className="text-[17px] font-semibold">{titre}</p>
               <p className="mt-1.5 text-[15px] leading-relaxed text-white/75">{texte}</p>
             </li>
