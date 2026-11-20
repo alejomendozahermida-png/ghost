@@ -56,7 +56,7 @@ export function TableauDeBord() {
       : 'Montrez une première tâche à Ghost pour commencer.';
 
   return (
-    <section className="mt-24" aria-label="Votre espace">
+    <section className="mt-40" aria-label="Votre espace">
       <h2 className="max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.03em] text-encre md:text-[40px]">{etat}</h2>
 
       <div className="mt-10 grid gap-4 md:grid-cols-[1.4fr_1fr]">
